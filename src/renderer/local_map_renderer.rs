@@ -1,19 +1,15 @@
-// use crate::world::chunk::Chunk;
-use crate::world::terrain_material::TerrainMaterial;
 use macroquad::prelude::*;
 use crate::game::game_state::GameState;
 use crate::renderer::camera::Camera;
 use crate::renderer::grid::draw_grid;
 use crate::renderer::tile_render::TileRenderer;
-use crate::worldgen::world_map::WorldMap;
-use crate::worldgen::biome::BiomeId;
 
-pub struct Renderer {
+pub struct LocalMapRenderer {
     pub camera: Camera,
     tile_renderer: TileRenderer,
 }
 
-impl Renderer {
+impl LocalMapRenderer {
     pub fn default() -> Self {
         Self {
             camera: Camera::default(),
@@ -97,7 +93,7 @@ impl Renderer {
         &self,
         chunk_x: &i32,
         chunk_y: &i32,
-        chunk: &crate::world::chunk::Chunk,
+        chunk: &crate::world::localmap::chunk::Chunk,
         chunk_pixel_size: i32,
         tile_size: i32,
         world_left: i32,
@@ -149,7 +145,7 @@ impl Renderer {
 
     fn draw_tile_in_chunk(
         &self,
-        tile: &crate::world::tile::Tile,
+        tile: &crate::world::localmap::tile::Tile,
         chunk_pixel_x: i32,
         chunk_pixel_y: i32,
         tile_x: usize,
@@ -189,21 +185,4 @@ impl Renderer {
             world_bottom,
         );
     }
-
-    pub fn draw_world_map(&self, world_map: &WorldMap, camera: &Camera) {
-        clear_background(BLACK);
-        let cell_size = 8.0 * camera.zoom;
-        for x in 0..world_map.width {
-            for y in 0..world_map.height {
-                let biome = world_map.biomes[x][y];
-                let color = match biome {
-                    BiomeId::Plains => GREEN,
-                    BiomeId::Mountain => GRAY,
-                };
-                let sx = (x as f32 - camera.x) * cell_size;
-                let sy = (y as f32 - camera.y) * cell_size;
-                draw_rectangle(sx, sy, cell_size, cell_size, color);
-            }
-        }
-    }
-}
+} 

@@ -1,4 +1,4 @@
-use crate::world::tile::Tile;
+use crate::world::localmap::tile::Tile;
 
 pub const CHUNK_SIZE: usize = 32;
 

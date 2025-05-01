@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui};
-use crate::world::world::World;
-use crate::world::terrain_material::TerrainMaterial;
+use crate::world::localmap::world::World;
+use crate::world::localmap::terrain_material::TerrainMaterial;
 
 pub struct GuiState {
     pub show_ui: bool,

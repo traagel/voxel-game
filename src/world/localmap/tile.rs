@@ -1,4 +1,4 @@
-use crate::world::subpixel::Subpixel;
+use crate::world::localmap::subpixel::Subpixel;
 
 pub const TILE_SIZE: usize = 8;
 

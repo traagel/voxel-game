@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 macroquad = "0.4"
-noise = "0.8"
+noise = "0.9"
+rand = "0.8"

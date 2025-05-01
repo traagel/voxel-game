@@ -1,6 +1,6 @@
-use crate::world::chunk::Chunk;
-use crate::world::chunk::CHUNK_SIZE;
-use crate::worldgen::biome::BiomeId;
+use crate::world::localmap::chunk::Chunk;
+use crate::world::localmap::chunk::CHUNK_SIZE;
+use crate::world::worldmap::biome::BiomeId;
 
 pub struct GenCtx<'a> {
     pub chunk: &'a mut Chunk,

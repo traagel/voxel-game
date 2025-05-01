@@ -1,5 +1,5 @@
-use crate::world::world::World;
-use crate::world::terrain_material::TerrainMaterial;
+use crate::world::localmap::world::World;
+use crate::world::localmap::terrain_material::TerrainMaterial;
 
 /// Paints a dig target area in the world at (x, y).
 pub fn paint_dig_target(world: &mut World, x: i32, y: i32) {

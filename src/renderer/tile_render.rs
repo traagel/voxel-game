@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::world::terrain_material::TerrainMaterial;
+use crate::world::localmap::terrain_material::TerrainMaterial;
 
 pub struct TileRenderer;
 
@@ -12,7 +12,7 @@ impl Default for TileRenderer {
 impl TileRenderer {
     pub fn draw_tile(
         &self,
-        tile: &crate::world::tile::Tile,
+        tile: &crate::world::localmap::tile::Tile,
         world_x: i32,
         world_y: i32,
         camera_x: f32,
@@ -90,7 +90,7 @@ impl TileRenderer {
     }
 }
 
-fn is_mixed_material(tile: &crate::world::tile::Tile) -> bool {
+fn is_mixed_material(tile: &crate::world::localmap::tile::Tile) -> bool {
     let first = tile.subgrid[0][0].material;
     for row in &tile.subgrid {
         for sub in row {

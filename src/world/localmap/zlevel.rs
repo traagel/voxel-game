@@ -1,4 +1,4 @@
-use crate::world::chunk::Chunk;
+use crate::world::localmap::chunk::Chunk;
 use std::collections::HashMap;
 
 pub struct ZLevel {

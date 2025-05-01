@@ -1,4 +1,4 @@
-use crate::world::terrain_material::TerrainMaterial;
+use crate::world::localmap::terrain_material::TerrainMaterial;
 
 #[derive(Clone, Copy)]
 pub struct Subpixel {

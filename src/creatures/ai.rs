@@ -1,5 +1,5 @@
-use crate::world::terrain_material::TerrainMaterial;
-use crate::world::world::World;
+use crate::world::localmap::terrain_material::TerrainMaterial;
+use crate::world::localmap::world::World;
 use super::Creature;
 
 impl Creature {

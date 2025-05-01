@@ -1,4 +1,4 @@
-use crate::world::zlevel::ZLevel;
+use crate::world::localmap::zlevel::ZLevel;
 
 /// An immutable snapshot of all data needed for rendering.
 pub struct GameState<'a> {

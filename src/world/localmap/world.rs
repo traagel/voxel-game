@@ -1,6 +1,6 @@
-use crate::world::subpixel::Subpixel;
-use crate::world::terrain_material::TerrainMaterial;
-use crate::world::zlevel::ZLevel;
+use crate::world::localmap::subpixel::Subpixel;
+use crate::world::localmap::terrain_material::TerrainMaterial;
+use crate::world::localmap::zlevel::ZLevel;
 use std::collections::HashMap;
 
 pub struct World {

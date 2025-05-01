@@ -1,10 +1,10 @@
-use crate::world::chunk::Chunk;
-use crate::world::chunk::CHUNK_SIZE;
-use crate::world::tile::TILE_SIZE;
-use crate::world::zlevel::ZLevel;
-use crate::worldgen::biome::BiomeId;
-use crate::worldgen::pipeline::{GenCtx, GenStage};
-use crate::worldgen::stages::height::HeightStage;
+use crate::world::localmap::chunk::Chunk;
+use crate::world::localmap::chunk::CHUNK_SIZE;
+use crate::world::localmap::tile::TILE_SIZE;
+use crate::world::localmap::zlevel::ZLevel;
+use crate::world::worldmap::biome::BiomeId;
+use crate::worldgen::localmap::pipeline::{GenCtx, GenStage};
+use crate::worldgen::localmap::stages::height::HeightStage;
 use std::collections::HashMap;
 
 pub struct WorldGenerator {
@@ -40,7 +40,7 @@ impl WorldGenerator {
 
 impl WorldGenerator {
     /// Fills the given world with chunks for every (cx, cy) in `area`.
-    pub fn generate_into_world(&self, world: &mut crate::world::world::World, area: &[(i32, i32)]) {
+    pub fn generate_into_world(&self, world: &mut crate::world::localmap::world::World, area: &[(i32, i32)]) {
         // make sure z-level 0 has a chunk map
         if world.z_levels.is_empty() {
             world.z_levels.push(ZLevel {

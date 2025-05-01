@@ -1,17 +1,18 @@
-use macroquad::prelude::*;
-use crate::renderer::renderer::Renderer;
-use crate::renderer::camera::Camera;
-use crate::world::world::World;
-use crate::worldgen::generator::WorldGenerator;
-use crate::worldgen::builder::WorldGeneratorBuilder;
-use crate::worldgen::world_map::{WorldMap, WorldMapGenerator};
 use crate::creatures::Creature;
-use crate::particle::Particle;
-use crate::gui::GuiState;
-use crate::player::actions::{paint_dig_target, paint_rock, count_dig_jobs};
-use crate::world::terrain_material::TerrainMaterial;
-use macroquad::rand::gen_range;
 use crate::game::game_state::GameState;
+use crate::gui::GuiState;
+use crate::particle::Particle;
+use crate::player::actions::{count_dig_jobs, paint_dig_target, paint_rock};
+use crate::renderer::camera::Camera;
+use crate::renderer::local_map_renderer::LocalMapRenderer;
+use crate::renderer::world_map_renderer::WorldMapRenderer;
+use crate::world::localmap::terrain_material::TerrainMaterial;
+use crate::world::localmap::world::World;
+use crate::world::worldmap::world_map::WorldMap;
+use crate::worldgen::localmap::builder::WorldGeneratorBuilder;
+use crate::worldgen::worldmap::WorldMapGenerator;
+use macroquad::prelude::*;
+use macroquad::rand::gen_range;
 
 pub enum RenderMode {
     WorldMap,
@@ -20,7 +21,8 @@ pub enum RenderMode {
 
 pub struct Game {
     world: World,
-    renderer: Renderer,
+    local_map_renderer: LocalMapRenderer,
+    world_map_renderer: WorldMapRenderer,
     creatures: Vec<Creature>,
     particles: Vec<Particle>,
     gui: GuiState,
@@ -31,11 +33,12 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        let world_map_gen = WorldMapGenerator::new(42, 128, 128, 0.02);
+        let world_map_gen = WorldMapGenerator::new(42, 128, 128, 0.02, None);
         let world_map = world_map_gen.generate();
         Self {
             world: World::new(),
-            renderer: Renderer::default(),
+            local_map_renderer: LocalMapRenderer::default(),
+            world_map_renderer: WorldMapRenderer,
             creatures: Vec::new(),
             particles: Vec::new(),
             gui: GuiState::new(),
@@ -54,7 +57,8 @@ impl Game {
 
         for _ in 0..10 {
             if let Some((spawn_x, spawn_y)) = Self::find_spawn_point(&self.world) {
-                self.creatures.push(Creature::new(spawn_x, spawn_y, 2.0, RED));
+                self.creatures
+                    .push(Creature::new(spawn_x, spawn_y, 2.0, RED));
             }
         }
     }
@@ -85,48 +89,57 @@ impl Game {
                 let zoom_speed = 0.1;
 
                 if is_key_down(KeyCode::W) {
-                    self.renderer.move_camera_delta(0.0, -move_speed);
+                    self.local_map_renderer.move_camera_delta(0.0, -move_speed);
                 }
                 if is_key_down(KeyCode::S) {
-                    self.renderer.move_camera_delta(0.0, move_speed);
+                    self.local_map_renderer.move_camera_delta(0.0, move_speed);
                 }
                 if is_key_down(KeyCode::A) {
-                    self.renderer.move_camera_delta(-move_speed, 0.0);
+                    self.local_map_renderer.move_camera_delta(-move_speed, 0.0);
                 }
                 if is_key_down(KeyCode::D) {
-                    self.renderer.move_camera_delta(move_speed, 0.0);
+                    self.local_map_renderer.move_camera_delta(move_speed, 0.0);
                 }
 
                 let wheel = mouse_wheel().1;
                 if wheel != 0.0 {
-                    let old_zoom = self.renderer.get_zoom();
+                    let old_zoom = self.local_map_renderer.get_zoom();
                     let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
                     if (new_zoom - old_zoom).abs() > f32::EPSILON {
                         let mouse = mouse_position();
                         let mouse_x = mouse.0;
                         let mouse_y = mouse.1;
-                        let world_x = self.renderer.get_camera_x() + mouse_x / old_zoom;
-                        let world_y = self.renderer.get_camera_y() + mouse_y / old_zoom;
-                        self.renderer.set_zoom(new_zoom);
-                        let new_screen_x = (world_x - self.renderer.get_camera_x()) * new_zoom;
-                        let new_screen_y = (world_y - self.renderer.get_camera_y()) * new_zoom;
-                        let camera_x = self.renderer.get_camera_x() + (mouse_x - new_screen_x) / new_zoom;
-                        let camera_y = self.renderer.get_camera_y() + (mouse_y - new_screen_y) / new_zoom;
-                        self.renderer.move_camera_delta(camera_x - self.renderer.get_camera_x(), camera_y - self.renderer.get_camera_y());
+                        let world_x = self.local_map_renderer.get_camera_x() + mouse_x / old_zoom;
+                        let world_y = self.local_map_renderer.get_camera_y() + mouse_y / old_zoom;
+                        self.local_map_renderer.set_zoom(new_zoom);
+                        let new_screen_x = (world_x - self.local_map_renderer.get_camera_x()) * new_zoom;
+                        let new_screen_y = (world_y - self.local_map_renderer.get_camera_y()) * new_zoom;
+                        let camera_x =
+                            self.local_map_renderer.get_camera_x() + (mouse_x - new_screen_x) / new_zoom;
+                        let camera_y =
+                            self.local_map_renderer.get_camera_y() + (mouse_y - new_screen_y) / new_zoom;
+                        self.local_map_renderer.move_camera_delta(
+                            camera_x - self.local_map_renderer.get_camera_x(),
+                            camera_y - self.local_map_renderer.get_camera_y(),
+                        );
                     }
                 }
 
                 let mouse_pos = mouse_position();
-                let mouse_world_x = self.renderer.get_camera_x() + mouse_pos.0 / self.renderer.get_zoom();
-                let mouse_world_y = self.renderer.get_camera_y() + mouse_pos.1 / self.renderer.get_zoom();
+                let mouse_world_x =
+                    self.local_map_renderer.get_camera_x() + mouse_pos.0 / self.local_map_renderer.get_zoom();
+                let mouse_world_y =
+                    self.local_map_renderer.get_camera_y() + mouse_pos.1 / self.local_map_renderer.get_zoom();
 
                 if is_mouse_button_down(MouseButton::Left) {
                     paint_rock(&mut self.world, mouse_world_x as i32, mouse_world_y as i32);
                 }
                 if is_mouse_button_down(MouseButton::Right) {
                     let mouse_pos = mouse_position();
-                    let world_x = self.renderer.get_camera_x() + mouse_pos.0 / self.renderer.get_zoom();
-                    let world_y = self.renderer.get_camera_y() + mouse_pos.1 / self.renderer.get_zoom();
+                    let world_x =
+                        self.local_map_renderer.get_camera_x() + mouse_pos.0 / self.local_map_renderer.get_zoom();
+                    let world_y =
+                        self.local_map_renderer.get_camera_y() + mouse_pos.1 / self.local_map_renderer.get_zoom();
                     paint_dig_target(&mut self.world, world_x as i32, world_y as i32);
                 }
             }
@@ -172,7 +185,11 @@ impl Game {
     fn draw_creatures(&self) {
         if let RenderMode::LocalMap = self.render_mode {
             for creature in &self.creatures {
-                creature.draw(self.renderer.get_camera_x(), self.renderer.get_camera_y(), self.renderer.get_zoom());
+                creature.draw(
+                    self.local_map_renderer.get_camera_x(),
+                    self.local_map_renderer.get_camera_y(),
+                    self.local_map_renderer.get_zoom(),
+                );
             }
         }
     }
@@ -195,21 +212,22 @@ impl Game {
     fn render(&mut self) {
         match self.render_mode {
             RenderMode::WorldMap => {
-                self.renderer.draw_world_map(&self.world_map, &self.world_map_camera);
+                self.world_map_renderer
+                    .draw_world_map(&self.world_map, &self.world_map_camera);
             }
             RenderMode::LocalMap => {
                 let state = GameState {
-                    camera_x: self.renderer.get_camera_x(),
-                    camera_y: self.renderer.get_camera_y(),
-                    zoom: self.renderer.get_zoom(),
+                    camera_x: self.local_map_renderer.get_camera_x(),
+                    camera_y: self.local_map_renderer.get_camera_y(),
+                    zoom: self.local_map_renderer.get_zoom(),
                     z_levels: &self.world.z_levels,
                 };
-                self.renderer.draw(&state);
+                self.local_map_renderer.draw(&state);
                 self.draw_creatures();
                 for p in &self.particles {
-                    let sx = (p.x - self.renderer.get_camera_x()) * self.renderer.get_zoom();
-                    let sy = (p.y - self.renderer.get_camera_y()) * self.renderer.get_zoom();
-                    draw_circle(sx, sy, 0.2 * self.renderer.get_camera_y(), YELLOW);
+                    let sx = (p.x - self.local_map_renderer.get_camera_x()) * self.local_map_renderer.get_zoom();
+                    let sy = (p.y - self.local_map_renderer.get_camera_y()) * self.local_map_renderer.get_zoom();
+                    draw_circle(sx, sy, 0.2 * self.local_map_renderer.get_camera_y(), YELLOW);
                 }
             }
         }
@@ -223,4 +241,5 @@ impl Game {
             next_frame().await;
         }
     }
-} 
+}
+

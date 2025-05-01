@@ -1,7 +1,7 @@
-use super::super::pipeline::{GenCtx, GenStage};
-use crate::world::terrain_material::TerrainMaterial;
-use crate::world::chunk::CHUNK_SIZE;
-use crate::world::tile::TILE_SIZE;
+use crate::worldgen::localmap::pipeline::{GenCtx, GenStage};
+use crate::world::localmap::terrain_material::TerrainMaterial;
+use crate::world::localmap::chunk::CHUNK_SIZE;
+use crate::world::localmap::tile::TILE_SIZE;
 use noise::{NoiseFn, Perlin};
 
 pub struct MaterialStage {
