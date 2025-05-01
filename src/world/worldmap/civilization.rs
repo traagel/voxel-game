@@ -1,6 +1,7 @@
 //! Civilization types, cultures, and instances for world generation
 
 use macroquad::prelude::*;
+use crate::world::worldmap::biome::BiomeId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Civilization {
@@ -88,6 +89,20 @@ impl Civilization {
             Civilization::Lizardfolk => LIME,
             Civilization::FairyFae => PINK,
             Civilization::Kobold => ORANGE,
+        }
+    }
+
+    pub fn preferred_biomes(&self) -> &'static [BiomeId] {
+        match self {
+            Civilization::Human => &[BiomeId::Plains, BiomeId::Forest, BiomeId::Hills],
+            Civilization::Elf => &[BiomeId::Forest, BiomeId::Jungle, BiomeId::Plains],
+            Civilization::Dwarf => &[BiomeId::Mountain, BiomeId::Hills],
+            Civilization::GnomeHalfling => &[BiomeId::Plains, BiomeId::Hills],
+            Civilization::OrcGoblin => &[BiomeId::Swamp, BiomeId::Hills, BiomeId::Plains],
+            Civilization::Merfolk => &[BiomeId::Sea, BiomeId::Ocean, BiomeId::Beach],
+            Civilization::Lizardfolk => &[BiomeId::Swamp, BiomeId::Jungle],
+            Civilization::FairyFae => &[BiomeId::Forest, BiomeId::Plains],
+            Civilization::Kobold => &[BiomeId::Hills, BiomeId::Mountain],
         }
     }
 } 

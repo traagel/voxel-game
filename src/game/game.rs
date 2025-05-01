@@ -34,7 +34,8 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        let world_map_gen = WorldMapGenerator::new(42, 128, 128, 0.02, None);
+        let gui = GuiState::new();
+        let world_map_gen = WorldMapGenerator::new(42, gui.worldgen_width, gui.worldgen_height, 0.02, None);
         let world_map = world_map_gen.generate();
         Self {
             world: World::new(),
@@ -42,7 +43,7 @@ impl Game {
             world_map_renderer: WorldMapRenderer,
             creatures: Vec::new(),
             particles: Vec::new(),
-            gui: GuiState::new(),
+            gui,
             world_map,
             render_mode: RenderMode::WorldMap, // Start in world map mode
             world_map_camera: Camera::default(),
@@ -216,7 +217,13 @@ impl Game {
         // World map regeneration logic
         if self.gui.regenerate_requested {
             let params = self.gui.worldgen_params;
-            let world_map_gen = WorldMapGenerator::new(self.gui.worldgen_seed, 128, 128, 0.02, Some(params));
+            let world_map_gen = WorldMapGenerator::new(
+                self.gui.worldgen_seed,
+                self.gui.worldgen_width,
+                self.gui.worldgen_height,
+                0.02,
+                Some(params),
+            );
             self.world_map = world_map_gen.generate();
             self.gui.regenerate_requested = false;
         }

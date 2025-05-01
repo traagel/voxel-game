@@ -8,6 +8,32 @@ use super::noise_utils::*;
 use super::continents::generate_continent_centers;
 use super::biome_classify::classify_biome;
 use rand::seq::SliceRandom;
+use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::cmp::Ordering;
+
+#[derive(Copy, Clone)]
+struct Node {
+    pos: (usize, usize),
+    cost: f64,
+    est_total: f64,
+}
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Reverse for min-heap
+        other.est_total.partial_cmp(&self.est_total).unwrap_or(std::cmp::Ordering::Equal)
+    }
+}
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.pos == other.pos
+    }
+}
+impl Eq for Node {}
 
 pub struct WorldMapGenerator {
     seed: u32,
@@ -182,50 +208,84 @@ impl WorldMapGenerator {
         let religions = [
             "Sun God", "Nature Spirits", "Ancestor Ghosts", "The Great Machine", "The Deep", "The Dragon", "The Moon Court", "The Old Ones", "The Flame"
         ];
-        // Place civilization seeds
-        let num_civs = civ_types.len();
+        // Place multiple civilization seeds per type
         let mut civ_seeds = Vec::new();
         for &civ in &civ_types {
-            // Try to find a land tile for the civ seed
-            for _ in 0..100 {
-                let x = rng.gen_range(0..self.width);
-                let y = rng.gen_range(0..self.height);
-                if elevation[x][y] > sea_level && !civ_seeds.iter().any(|(cx,cy,_)| (*cx as isize - x as isize).abs() < 10 && (*cy as isize - y as isize).abs() < 10) {
-                    let culture = Culture {
-                        alignment: *alignments.choose(&mut rng).unwrap(),
-                        tradition: traditions.choose(&mut rng).unwrap().to_string(),
-                        religion: religions.choose(&mut rng).unwrap().to_string(),
-                        trait_: *traits.choose(&mut rng).unwrap(),
-                    };
-                    civ_seeds.push((x, y, CivilizationInstance { civ_type: civ, culture }));
-                    break;
+            let num_seeds = rng.gen_range(2..=4); // 2-4 per civ type
+            let preferred_biomes = civ.preferred_biomes();
+            for _ in 0..num_seeds {
+                let mut found = false;
+                // Try to find a preferred biome tile for the civ seed
+                for _ in 0..100 {
+                    let x = rng.gen_range(0..self.width);
+                    let y = rng.gen_range(0..self.height);
+                    if elevation[x][y] > sea_level
+                        && preferred_biomes.contains(&biomes[x][y])
+                        && !civ_seeds.iter().any(|(cx,cy,_,_)| (*cx as isize - x as isize).abs() < 10 && (*cy as isize - y as isize).abs() < 10)
+                    {
+                        let culture = Culture {
+                            alignment: *alignments.choose(&mut rng).unwrap(),
+                            tradition: traditions.choose(&mut rng).unwrap().to_string(),
+                            religion: religions.choose(&mut rng).unwrap().to_string(),
+                            trait_: *traits.choose(&mut rng).unwrap(),
+                        };
+                        let instance_id = civ_seeds.len();
+                        civ_seeds.push((x, y, CivilizationInstance { civ_type: civ, culture }, instance_id));
+                        found = true;
+                        break;
+                    }
+                }
+                // Fallback: any land tile if no preferred biome found
+                if !found {
+                    for _ in 0..100 {
+                        let x = rng.gen_range(0..self.width);
+                        let y = rng.gen_range(0..self.height);
+                        if elevation[x][y] > sea_level
+                            && !civ_seeds.iter().any(|(cx,cy,_,_)| (*cx as isize - x as isize).abs() < 10 && (*cy as isize - y as isize).abs() < 10)
+                        {
+                            let culture = Culture {
+                                alignment: *alignments.choose(&mut rng).unwrap(),
+                                tradition: traditions.choose(&mut rng).unwrap().to_string(),
+                                religion: religions.choose(&mut rng).unwrap().to_string(),
+                                trait_: *traits.choose(&mut rng).unwrap(),
+                            };
+                            let instance_id = civ_seeds.len();
+                            civ_seeds.push((x, y, CivilizationInstance { civ_type: civ, culture }, instance_id));
+                            break;
+                        }
+                    }
                 }
             }
         }
-        // Assign each tile to the nearest civ seed (Voronoi)
+        // Assign each tile to the nearest civ seed within a radius (clustered influence)
+        let influence_radius = 20.0; // adjust as desired
         let mut civilization_map = vec![vec![None; self.height]; self.width];
         for x in 0..self.width {
             for y in 0..self.height {
                 if elevation[x][y] > sea_level {
                     let mut min_dist = f64::MAX;
                     let mut nearest = None;
-                    for (cx, cy, civ) in &civ_seeds {
-                        let dist = ((*cx as isize - x as isize).pow(2) + (*cy as isize - y as isize).pow(2)) as f64;
+                    for (cx, cy, civ, _instance_id) in &civ_seeds {
+                        let dist = (((*cx as isize - x as isize).pow(2) + (*cy as isize - y as isize).pow(2)) as f64).sqrt();
                         if dist < min_dist {
                             min_dist = dist;
                             nearest = Some(civ.clone());
                         }
                     }
-                    civilization_map[x][y] = nearest;
+                    if min_dist <= influence_radius {
+                        civilization_map[x][y] = nearest;
+                    } else {
+                        civilization_map[x][y] = None; // wilderness
+                    }
                 }
             }
         }
-        // Place cities for each civilization
+        // Place cities for each civilization instance
         let mut cities = Vec::new();
         let city_names = [
             "Aldoria", "Brighthaven", "Stonehelm", "Rivermouth", "Frostford", "Sunspire", "Shadowfen", "Goldport", "Ironhold", "Starfall", "Mistwood", "Deepmere", "Windrest", "Moonwatch", "Thundertop"
         ];
-        for (seed_x, seed_y, civ_inst) in &civ_seeds {
+        for (seed_x, seed_y, civ_inst, instance_id) in &civ_seeds {
             let mut placed = 0;
             let max_cities = 3;
             for _ in 0..200 {
@@ -250,7 +310,7 @@ impl WorldMapGenerator {
                 }
             }
             // Always place a capital at the seed
-            let name = format!("{} Capital", match civ_inst.civ_type {
+            let name = format!("{} Capital {}", match civ_inst.civ_type {
                 Civilization::Human => "Human",
                 Civilization::Elf => "Elf",
                 Civilization::Dwarf => "Dwarf",
@@ -260,7 +320,7 @@ impl WorldMapGenerator {
                 Civilization::Lizardfolk => "Lizardfolk",
                 Civilization::FairyFae => "Fairy/Fae",
                 Civilization::Kobold => "Kobold",
-            });
+            }, instance_id);
             let population = rng.gen_range(50_000..500_000);
             cities.push(City {
                 name,
@@ -273,7 +333,6 @@ impl WorldMapGenerator {
 
         // === Civilization Relations and Trade Routes ===
         use crate::world::worldmap::{Relation, CivilizationRelations, TradeRoute};
-        use std::collections::HashMap;
         let mut relations = HashMap::new();
         // Assign random relations between all pairs (symmetric, no self-relations)
         for i in 0..civ_types.len() {
@@ -290,7 +349,7 @@ impl WorldMapGenerator {
         let civ_relations = CivilizationRelations { relations };
         // Find capitals for each civ
         let mut capitals = HashMap::new();
-        for (seed_x, seed_y, civ_inst) in &civ_seeds {
+        for (seed_x, seed_y, civ_inst, _instance_id) in &civ_seeds {
             capitals.insert(civ_inst.civ_type, (*seed_x, *seed_y));
         }
         // Generate trade routes between capitals of civs at Peace
@@ -436,12 +495,63 @@ impl WorldMapGenerator {
         let num_ranges = 5;
         let range_width = (self.width.max(self.height) as f64 * 0.03).max(2.0) as isize; // width in cells
         let range_height = 0.25; // how much to boost elevation at the center
+
+        // Calculate elevation thresholds for hills and mountains
+        let mut flat: Vec<f64> = elevation.iter().flatten().copied().collect();
+        flat.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let mountain_level = flat[(flat.len() as f64 * 0.90) as usize]; // top 10% as mountains
+        let hill_level = flat[(flat.len() as f64 * 0.80) as usize];     // next 10% as hills
+
+        // Collect candidate points for hills and mountains
+        let mut mountain_points = Vec::new();
+        let mut hill_points = Vec::new();
+        for x in 0..self.width as isize {
+            for y in 0..self.height as isize {
+                let elev = elevation[x as usize][y as usize];
+                if elev >= mountain_level {
+                    mountain_points.push((x, y));
+                } else if elev >= hill_level {
+                    hill_points.push((x, y));
+                }
+            }
+        }
+
         for _ in 0..num_ranges {
-            let x0 = rng.gen_range(0..self.width as isize);
-            let y0 = rng.gen_range(0..self.height as isize);
-            let x1 = rng.gen_range(0..self.width as isize);
-            let y1 = rng.gen_range(0..self.height as isize);
-            let path = self.generate_noisy_line(x0, y0, x1, y1, &mut rng);
+            // Pick start and end points: prefer mountain-to-mountain, else hill-to-mountain, else hill-to-hill
+            let (start, end) = if mountain_points.len() >= 2 && rng.gen_bool(0.7) {
+                // 70% chance: mountain-to-mountain
+                let a = mountain_points[rng.gen_range(0..mountain_points.len())];
+                let mut b = mountain_points[rng.gen_range(0..mountain_points.len())];
+                // Ensure start != end
+                for _ in 0..10 {
+                    if a != b { break; }
+                    b = mountain_points[rng.gen_range(0..mountain_points.len())];
+                }
+                (a, b)
+            } else if !hill_points.is_empty() && !mountain_points.is_empty() {
+                // hill-to-mountain
+                let a = hill_points[rng.gen_range(0..hill_points.len())];
+                let b = mountain_points[rng.gen_range(0..mountain_points.len())];
+                (a, b)
+            } else if hill_points.len() >= 2 {
+                // hill-to-hill
+                let a = hill_points[rng.gen_range(0..hill_points.len())];
+                let mut b = hill_points[rng.gen_range(0..hill_points.len())];
+                for _ in 0..10 {
+                    if a != b { break; }
+                    b = hill_points[rng.gen_range(0..hill_points.len())];
+                }
+                (a, b)
+            } else {
+                // fallback: random points as before
+                let x0 = rng.gen_range(0..self.width as isize);
+                let y0 = rng.gen_range(0..self.height as isize);
+                let x1 = rng.gen_range(0..self.width as isize);
+                let y1 = rng.gen_range(0..self.height as isize);
+                ((x0, y0), (x1, y1))
+            };
+
+            let path = self.generate_noisy_line(start.0, start.1, end.0, end.1, &mut rng);
             for &(px, py) in &path {
                 for dx in -range_width..=range_width {
                     for dy in -range_width..=range_width {
@@ -669,7 +779,160 @@ impl WorldMapGenerator {
         rivers
     }
 
-    /// Generate trade routes between capitals of civs at Peace. This is a stub to be filled with pathfinding logic.
+    fn neighbors(width: usize, height: usize, (x, y): (usize, usize)) -> Vec<(usize, usize)> {
+        let mut n = Vec::with_capacity(8);
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                if dx == 0 && dy == 0 { continue; }
+                let nx = x as i32 + dx;
+                let ny = y as i32 + dy;
+                if nx >= 0 && ny >= 0 && (nx as usize) < width && (ny as usize) < height {
+                    n.push((nx as usize, ny as usize));
+                }
+            }
+        }
+        n
+    }
+
+    fn heuristic(a: (usize, usize), b: (usize, usize)) -> f64 {
+        let dx = a.0 as f64 - b.0 as f64;
+        let dy = a.1 as f64 - b.1 as f64;
+        (dx * dx + dy * dy).sqrt()
+    }
+
+    fn reconstruct_path(mut came_from: HashMap<(usize, usize), (usize, usize)>, mut current: (usize, usize)) -> Vec<(usize, usize)> {
+        let mut path = vec![current];
+        while let Some(&prev) = came_from.get(&current) {
+            current = prev;
+            path.push(current);
+        }
+        path.reverse();
+        path
+    }
+
+    fn is_coast(elevation: &Vec<Vec<f64>>, sea_level: f64, x: usize, y: usize) -> bool {
+        if elevation[x][y] > sea_level { return false; }
+        for (nx, ny) in Self::neighbors(elevation.len(), elevation[0].len(), (x, y)) {
+            if elevation[nx][ny] > sea_level {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn is_river(rivers: &Vec<Vec<bool>>, x: usize, y: usize) -> bool {
+        rivers[x][y]
+    }
+
+    // Land A* pathfinding, now with preferred road tiles
+    fn astar_land_with_roads(&self, elevation: &Vec<Vec<f64>>, sea_level: f64, mountain_level: f64, start: (usize, usize), goal: (usize, usize), road_tiles: &HashSet<(usize, usize)>) -> Option<Vec<(usize, usize)>> {
+        let (w, h) = (elevation.len(), elevation[0].len());
+        let mut open = BinaryHeap::new();
+        let mut came_from = HashMap::new();
+        let mut g_score = HashMap::new();
+        let mut rng = rand::thread_rng();
+        g_score.insert(start, 0.0);
+        open.push(Node { pos: start, cost: 0.0, est_total: Self::heuristic(start, goal) });
+        while let Some(Node { pos, cost: _, est_total: _ }) = open.pop() {
+            if pos == goal {
+                return Some(Self::reconstruct_path(came_from, pos));
+            }
+            for (nx, ny) in Self::neighbors(w, h, pos) {
+                if elevation[nx][ny] <= sea_level { continue; } // Only land
+                let elev_from = elevation[pos.0][pos.1];
+                let elev_to = elevation[nx][ny];
+                let mut move_cost = 1.0;
+                if elev_to > elev_from {
+                    move_cost += 10.0 * (elev_to - elev_from); // Penalize uphill
+                }
+                // Angle penalty (steep slopes)
+                let angle = (elev_to - elev_from).atan();
+                if angle > 0.5 { move_cost += 2.0; }
+                // Mountain penalty
+                if elev_to >= mountain_level {
+                    // 1 in 1000 chance to ignore penalty (rare pass)
+                    if rng.gen_range(0..1000) == 0 {
+                        move_cost += 10.0; // still a bit more expensive
+                    } else {
+                        move_cost += 100.0; // huge penalty, avoid mountains
+                    }
+                }
+                // Prefer existing road tiles
+                if road_tiles.contains(&(nx, ny)) {
+                    move_cost -= 0.5; // bonus for using existing road
+                }
+                let tentative_g = g_score.get(&pos).unwrap() + move_cost;
+                if tentative_g < *g_score.get(&(nx, ny)).unwrap_or(&f64::INFINITY) {
+                    came_from.insert((nx, ny), pos);
+                    g_score.insert((nx, ny), tentative_g);
+                    open.push(Node { pos: (nx, ny), cost: tentative_g, est_total: tentative_g + Self::heuristic((nx, ny), goal) });
+                }
+            }
+        }
+        None
+    }
+
+    // Water A* pathfinding, now with preferred road tiles
+    fn astar_water_with_roads(&self, elevation: &Vec<Vec<f64>>, rivers: &Vec<Vec<bool>>, sea_level: f64, start: (usize, usize), goal: (usize, usize), road_tiles: &HashSet<(usize, usize)>) -> Option<Vec<(usize, usize)>> {
+        let (w, h) = (elevation.len(), elevation[0].len());
+        let mut open = BinaryHeap::new();
+        let mut came_from = HashMap::new();
+        let mut g_score = HashMap::new();
+        g_score.insert(start, 0.0);
+        open.push(Node { pos: start, cost: 0.0, est_total: Self::heuristic(start, goal) });
+        while let Some(Node { pos, cost: _, est_total: _ }) = open.pop() {
+            if pos == goal {
+                return Some(Self::reconstruct_path(came_from, pos));
+            }
+            for (nx, ny) in Self::neighbors(w, h, pos) {
+                let is_sea = elevation[nx][ny] <= sea_level;
+                let is_riv = rivers[nx][ny];
+                if !is_sea && !is_riv { continue; }
+                let mut move_cost = 1.0;
+                // Prefer coast
+                if is_sea && Self::is_coast(elevation, sea_level, nx, ny) { move_cost -= 0.2; }
+                // Prefer river
+                if is_riv { move_cost -= 0.5; }
+                // Penalize open ocean
+                if is_sea && !Self::is_coast(elevation, sea_level, nx, ny) { move_cost += 1.0; }
+                // Prefer existing road tiles
+                if road_tiles.contains(&(nx, ny)) {
+                    move_cost -= 0.5;
+                }
+                let tentative_g = g_score.get(&pos).unwrap() + move_cost;
+                if tentative_g < *g_score.get(&(nx, ny)).unwrap_or(&f64::INFINITY) {
+                    came_from.insert((nx, ny), pos);
+                    g_score.insert((nx, ny), tentative_g);
+                    open.push(Node { pos: (nx, ny), cost: tentative_g, est_total: tentative_g + Self::heuristic((nx, ny), goal) });
+                }
+            }
+        }
+        None
+    }
+
+    // Find nearest coast/river tile from a land city
+    fn nearest_water(&self, elevation: &Vec<Vec<f64>>, rivers: &Vec<Vec<bool>>, sea_level: f64, start: (usize, usize)) -> Option<(usize, usize)> {
+        let (w, h) = (elevation.len(), elevation[0].len());
+        let mut visited = HashSet::new();
+        let mut queue = std::collections::VecDeque::new();
+        queue.push_back(start);
+        visited.insert(start);
+        while let Some((x, y)) = queue.pop_front() {
+            let is_sea = elevation[x][y] <= sea_level;
+            let is_riv = rivers[x][y];
+            if is_sea || is_riv {
+                return Some((x, y));
+            }
+            for (nx, ny) in Self::neighbors(w, h, (x, y)) {
+                if !visited.contains(&(nx, ny)) {
+                    visited.insert((nx, ny));
+                    queue.push_back((nx, ny));
+                }
+            }
+        }
+        None
+    }
+
     fn generate_trade_routes(
         &self,
         capitals: &std::collections::HashMap<crate::world::worldmap::Civilization, (usize, usize)>,
@@ -680,24 +943,147 @@ impl WorldMapGenerator {
         rivers: &Vec<Vec<bool>>,
         sea_level: f64,
     ) -> Vec<crate::world::worldmap::TradeRoute> {
-        // TODO: Implement pathfinding for land/sea/river trade routes
-        // For now, just return direct from-to routes as before, with only endpoints in path
+        // Calculate mountain_level for this world
+        let mut flat: Vec<f64> = elevation.iter().flatten().copied().collect();
+        flat.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let mountain_level = flat[(flat.len() as f64 * 0.90) as usize]; // top 10% as mountains (or use your threshold)
+
         let mut trade_routes = Vec::new();
+        let mut road_tiles = HashSet::new();
+        // === Inter-civilization (capitals) ===
         for i in 0..civ_types.len() {
             for j in (i+1)..civ_types.len() {
                 let civ_a = civ_types[i];
                 let civ_b = civ_types[j];
                 if let Some(crate::world::worldmap::Relation::Peace) = civ_relations.relations.get(&(civ_a, civ_b)) {
                     if let (Some(&(ax, ay)), Some(&(bx, by))) = (capitals.get(&civ_a), capitals.get(&civ_b)) {
+                        // Decide route type
+                        let a_land = elevation[ax][ay] > sea_level;
+                        let b_land = elevation[bx][by] > sea_level;
+                        let a_water = !a_land;
+                        let b_water = !b_land;
+                        let mut path = None;
+                        if a_land && b_land {
+                            path = self.astar_land_with_roads(elevation, sea_level, mountain_level, (ax, ay), (bx, by), &road_tiles);
+                        } else if a_water && b_water {
+                            path = self.astar_water_with_roads(elevation, rivers, sea_level, (ax, ay), (bx, by), &road_tiles);
+                        } else {
+                            let (land_city, water_city) = if a_land { ((ax, ay), (bx, by)) } else { ((bx, by), (ax, ay)) };
+                            if let Some(water_entry) = self.nearest_water(elevation, rivers, sea_level, land_city) {
+                                if let Some(water_path) = self.astar_land_with_roads(elevation, sea_level, mountain_level, land_city, water_entry, &road_tiles) {
+                                    if let Some(water_exit) = self.nearest_water(elevation, rivers, sea_level, water_city) {
+                                        if let Some(sea_path) = self.astar_water_with_roads(elevation, rivers, sea_level, water_entry, water_exit, &road_tiles) {
+                                            if let Some(final_leg) = self.astar_land_with_roads(elevation, sea_level, mountain_level, water_exit, water_city, &road_tiles) {
+                                                let mut full = water_path;
+                                                full.pop();
+                                                full.extend(sea_path);
+                                                full.pop();
+                                                full.extend(final_leg);
+                                                path = Some(full);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        let path = path.unwrap_or_else(|| vec![(ax, ay), (bx, by)]);
+                        for &pt in &path { road_tiles.insert(pt); }
                         trade_routes.push(crate::world::worldmap::TradeRoute {
                             from: (ax, ay),
                             to: (bx, by),
                             civ_a,
                             civ_b,
-                            path: vec![(ax, ay), (bx, by)], // TODO: Replace with full path
+                            path,
                         });
                     }
                 }
+            }
+        }
+        // === Intra-civilization (all cities of same civ, MST) ===
+        use std::collections::HashSet;
+        let mut intra_civ_pairs = HashSet::new();
+        for &civ in civ_types {
+            let civ_cities: Vec<_> = cities.iter().filter(|c| c.civ == civ).collect();
+            if civ_cities.len() < 2 { continue; }
+            // Build MST using Prim's algorithm
+            let mut in_tree = vec![false; civ_cities.len()];
+            in_tree[0] = true;
+            let mut edges = Vec::new();
+            for _ in 1..civ_cities.len() {
+                let mut best = None;
+                let mut best_dist = f64::INFINITY;
+                let mut best_from = 0;
+                let mut best_to = 0;
+                for i in 0..civ_cities.len() {
+                    if !in_tree[i] { continue; }
+                    for j in 0..civ_cities.len() {
+                        if in_tree[j] { continue; }
+                        let dx = civ_cities[i].x as f64 - civ_cities[j].x as f64;
+                        let dy = civ_cities[i].y as f64 - civ_cities[j].y as f64;
+                        let dist = (dx*dx + dy*dy).sqrt();
+                        if dist < best_dist {
+                            best_dist = dist;
+                            best = Some((i, j));
+                            best_from = i;
+                            best_to = j;
+                        }
+                    }
+                }
+                if let Some((from, to)) = best {
+                    edges.push((from, to));
+                    in_tree[to] = true;
+                }
+            }
+            // For each MST edge, generate a route
+            for &(i, j) in &edges {
+                let a = civ_cities[i];
+                let b = civ_cities[j];
+                // Avoid duplicate routes
+                let key = if a.x < b.x || (a.x == b.x && a.y <= b.y) {
+                    ((a.x, a.y), (b.x, b.y))
+                } else {
+                    ((b.x, b.y), (a.x, a.y))
+                };
+                if intra_civ_pairs.contains(&key) { continue; }
+                intra_civ_pairs.insert(key);
+                // Decide route type
+                let a_land = elevation[a.x][a.y] > sea_level;
+                let b_land = elevation[b.x][b.y] > sea_level;
+                let a_water = !a_land;
+                let b_water = !b_land;
+                let mut path = None;
+                if a_land && b_land {
+                    path = self.astar_land_with_roads(elevation, sea_level, mountain_level, (a.x, a.y), (b.x, b.y), &road_tiles);
+                } else if a_water && b_water {
+                    path = self.astar_water_with_roads(elevation, rivers, sea_level, (a.x, a.y), (b.x, b.y), &road_tiles);
+                } else {
+                    let (land_city, water_city) = if a_land { ((a.x, a.y), (b.x, b.y)) } else { ((b.x, b.y), (a.x, a.y)) };
+                    if let Some(water_entry) = self.nearest_water(elevation, rivers, sea_level, land_city) {
+                        if let Some(water_path) = self.astar_land_with_roads(elevation, sea_level, mountain_level, land_city, water_entry, &road_tiles) {
+                            if let Some(water_exit) = self.nearest_water(elevation, rivers, sea_level, water_city) {
+                                if let Some(sea_path) = self.astar_water_with_roads(elevation, rivers, sea_level, water_entry, water_exit, &road_tiles) {
+                                    if let Some(final_leg) = self.astar_land_with_roads(elevation, sea_level, mountain_level, water_exit, water_city, &road_tiles) {
+                                        let mut full = water_path;
+                                        full.pop();
+                                        full.extend(sea_path);
+                                        full.pop();
+                                        full.extend(final_leg);
+                                        path = Some(full);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                let path = path.unwrap_or_else(|| vec![(a.x, a.y), (b.x, b.y)]);
+                for &pt in &path { road_tiles.insert(pt); }
+                trade_routes.push(crate::world::worldmap::TradeRoute {
+                    from: (a.x, a.y),
+                    to: (b.x, b.y),
+                    civ_a: civ,
+                    civ_b: civ,
+                    path,
+                });
             }
         }
         trade_routes

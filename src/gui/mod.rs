@@ -16,6 +16,8 @@ pub struct GuiState {
     pub regenerate_requested: bool,
     pub worldgen_seed: u32,
     pub map_view: MapView,
+    pub worldgen_width: usize,
+    pub worldgen_height: usize,
 }
 
 impl GuiState {
@@ -28,6 +30,8 @@ impl GuiState {
             regenerate_requested: false,
             worldgen_seed: 42,
             map_view: MapView::Biome,
+            worldgen_width: 128,
+            worldgen_height: 128,
         }
     }
 
@@ -65,6 +69,25 @@ impl GuiState {
                     ui.label(None, &format!("Seed: {}", self.worldgen_seed));
                     if ui.button(None, "Randomize Seed") {
                         self.worldgen_seed = macroquad::rand::rand();
+                    }
+                    ui.separator();
+                    // --- Map size controls ---
+                    ui.label(None, "Map Width:");
+                    for &w in &[128, 256, 512] {
+                        let selected = self.worldgen_width == w;
+                        let label = format!("{}{}", if selected { "● " } else { "○ " }, w);
+                        if ui.button(None, label.as_str()) {
+                            self.worldgen_width = w;
+                        }
+                    }
+                    ui.separator();
+                    ui.label(None, "Map Height:");
+                    for &h in &[128, 256, 512] {
+                        let selected = self.worldgen_height == h;
+                        let label = format!("{}{}", if selected { "● " } else { "○ " }, h);
+                        if ui.button(None, label.as_str()) {
+                            self.worldgen_height = h;
+                        }
                     }
                     ui.separator();
                     // ocean_percent (f64)

@@ -70,11 +70,11 @@ impl WorldMapRenderer {
                 }
             }
         }
-        // Draw cities as white circles
+        // Draw cities as red circles
         for city in &world_map.cities {
             let sx = (city.x as f32 - camera.x) * cell_size;
             let sy = (city.y as f32 - camera.y) * cell_size;
-            draw_circle(sx + cell_size / 2.0, sy + cell_size / 2.0, cell_size * 0.4, WHITE);
+            draw_circle(sx + cell_size / 2.0, sy + cell_size / 2.0, cell_size * 0.4, RED);
         }
 
         // Draw trade routes
@@ -98,10 +98,11 @@ impl WorldMapRenderer {
                 let sx2 = (bx as f32 - camera.x) * cell_size + cell_size / 2.0;
                 let sy2 = (by as f32 - camera.y) * cell_size + cell_size / 2.0;
                 if is_land {
-                    // Land route: solid road (brown)
-                    draw_line(sx1, sy1, sx2, sy2, cell_size * 0.18, BROWN);
+                    // Land route: thick black outline, thinner brown road
+                    draw_line(sx1, sy1, sx2, sy2, cell_size * 0.32, BLACK); // outline
+                    draw_line(sx1, sy1, sx2, sy2, cell_size * 0.20, BROWN); // road
                 } else {
-                    // Sea route: dashed blue line
+                    // Sea route: dashed purple line
                     let segments = 4;
                     for i in 0..segments {
                         let t0 = i as f32 / segments as f32;
@@ -110,7 +111,7 @@ impl WorldMapRenderer {
                         let y0 = sy1 + (sy2 - sy1) * t0;
                         let x1 = sx1 + (sx2 - sx1) * t1;
                         let y1 = sy1 + (sy2 - sy1) * t1;
-                        draw_line(x0, y0, x1, y1, cell_size * 0.14, SKYBLUE);
+                        draw_line(x0, y0, x1, y1, cell_size * 0.16, PURPLE);
                     }
                 }
             }
