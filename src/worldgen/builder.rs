@@ -1,6 +1,7 @@
 use super::generator::WorldGenerator;
 use super::pipeline::GenStage;
 use super::stages::height::HeightStage;
+use super::stages::material::MaterialStage;
 use noise::OpenSimplex;
 
 pub struct WorldGeneratorBuilder {
@@ -27,6 +28,7 @@ impl WorldGeneratorBuilder {
         // assemble stage list
         let stages: Vec<Box<dyn GenStage>> = vec![
             Box::new(HeightStage::new(self.seed, self.scale)),
+            Box::new(MaterialStage::new(self.seed, self.scale, 0.7)),
             // later: more stages appended here
         ];
         WorldGenerator::from_stages(stages)

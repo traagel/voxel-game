@@ -56,5 +56,19 @@ impl WorldGenerator {
                 .entry((cx, cy))
                 .or_insert_with(|| self.generate_chunk(cx, cy));
         }
+        // After generation, count all block types and store in world.block_counts
+        let mut counts = std::collections::HashMap::new();
+        for chunk in z0.chunks.values() {
+            for tile_row in &chunk.tiles {
+                for tile in tile_row {
+                    for subgrid_row in &tile.subgrid {
+                        for sub in subgrid_row {
+                            *counts.entry(sub.material).or_insert(0) += 1;
+                        }
+                    }
+                }
+            }
+        }
+        world.block_counts = counts;
     }
 }

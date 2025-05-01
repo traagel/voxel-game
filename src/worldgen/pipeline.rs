@@ -1,6 +1,5 @@
 use crate::world::chunk::Chunk;
 use crate::world::chunk::CHUNK_SIZE;
-use crate::world::tile::TILE_SIZE;
 use crate::worldgen::biome::BiomeId;
 
 pub struct GenCtx<'a> {

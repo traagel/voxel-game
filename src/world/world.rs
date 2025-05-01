@@ -1,15 +1,18 @@
 use crate::world::subpixel::Subpixel;
 use crate::world::terrain_material::TerrainMaterial;
 use crate::world::zlevel::ZLevel;
+use std::collections::HashMap;
 
 pub struct World {
     pub z_levels: Vec<ZLevel>,
+    pub block_counts: HashMap<TerrainMaterial, usize>,
 }
 
 impl World {
     pub fn new() -> Self {
         Self {
             z_levels: vec![ZLevel::new(0)],
+            block_counts: HashMap::new(),
         }
     }
 
@@ -57,7 +60,14 @@ impl World {
                     .get_mut(tile_x as usize)
                     .and_then(|row| row.get_mut(tile_y as usize))
                 {
-                    tile.subgrid[sub_x as usize][sub_y as usize].material = material;
+                    let subpixel = &mut tile.subgrid[sub_x as usize][sub_y as usize];
+                    let old_material = subpixel.material;
+                    if old_material != material {
+                        // Update block_counts
+                        *self.block_counts.entry(old_material).or_insert(1) -= 1;
+                        *self.block_counts.entry(material).or_insert(0) += 1;
+                    }
+                    subpixel.material = material;
                     chunk.dirty = true; // Mark chunk dirty if you want later to re-render it
                     tile.dirty = false;
                 }
@@ -88,5 +98,9 @@ impl World {
             }
         }
         None
+    }
+
+    pub fn get_block_counts(&self) -> &HashMap<TerrainMaterial, usize> {
+        &self.block_counts
     }
 }

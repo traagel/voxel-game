@@ -1,167 +1,208 @@
 // use crate::world::chunk::Chunk;
 use crate::world::terrain_material::TerrainMaterial;
-use crate::world::world::World;
 use macroquad::prelude::*;
+use crate::game::game_state::GameState;
+use crate::renderer::camera::Camera;
+use crate::renderer::grid::draw_grid;
+use crate::renderer::tile_render::TileRenderer;
+use crate::worldgen::world_map::WorldMap;
+use crate::worldgen::biome::BiomeId;
 
 pub struct Renderer {
-    pub camera_x: f32,
-    pub camera_y: f32,
-    pub zoom: f32,
+    pub camera: Camera,
+    tile_renderer: TileRenderer,
 }
 
 impl Renderer {
     pub fn default() -> Self {
         Self {
-            camera_x: 0.0,
-            camera_y: 0.0,
-            zoom: 4.0,
+            camera: Camera::default(),
+            tile_renderer: TileRenderer::default(),
         }
     }
 
     pub fn move_camera_delta(&mut self, dx: f32, dy: f32) {
-        self.camera_x += dx;
-        self.camera_y += dy;
+        self.camera.move_delta(dx, dy);
     }
 
     pub fn set_zoom(&mut self, zoom: f32) {
-        self.zoom = zoom
+        self.camera.set_zoom(zoom);
     }
 
     pub fn get_zoom(&self) -> f32 {
-        self.zoom
+        self.camera.get_zoom()
     }
 
     pub fn delta_zoom(&mut self, zoom: f32) {
-        self.zoom += zoom
+        self.camera.delta_zoom(zoom);
     }
 
-    pub fn render(&mut self, world: &mut World) {
+    pub fn get_camera_x(&self) -> f32 {
+        self.camera.get_x()
+    }
+
+    pub fn get_camera_y(&self) -> f32 {
+        self.camera.get_y()
+    }
+
+    /// The only public rendering method: draws the world using an immutable GameState DTO.
+    pub fn draw(&self, state: &GameState) {
         clear_background(BLACK);
 
-        for (z_index, zlevel) in world.z_levels.iter_mut().enumerate() {
-            if z_index != 0 {
-                continue;
-            }
-
+        if let Some(zlevel) = state.z_levels.get(0) {
             let screen_width_px = screen_width();
             let screen_height_px = screen_height();
-
-            let screen_world_w = screen_width_px / self.zoom;
-            let screen_world_h = screen_height_px / self.zoom;
-
-            let world_left = self.camera_x.floor() as i32;
-            let world_top = self.camera_y.floor() as i32;
-            let world_right = (self.camera_x + screen_world_w).ceil() as i32;
-            let world_bottom = (self.camera_y + screen_world_h).ceil() as i32;
-
-            for ((chunk_x, chunk_y), chunk) in &mut zlevel.chunks {
-                let chunk_pixel_x = chunk_x * 32 * 8;
-                let chunk_pixel_y = chunk_y * 32 * 8;
-
-                // ===== Chunk Culling =====
-                if chunk_pixel_x > world_right || chunk_pixel_x + (32 * 8) < world_left {
-                    continue;
-                }
-                if chunk_pixel_y > world_bottom || chunk_pixel_y + (32 * 8) < world_top {
-                    continue;
-                }
-
-                for tile_x in 0..chunk.tiles.len() {
-                    for tile_y in 0..chunk.tiles[tile_x].len() {
-                        let tile = &chunk.tiles[tile_x][tile_y];
-
-                        let world_x = (chunk_x * 32 + tile_x as i32) * 8;
-                        let world_y = (chunk_y * 32 + tile_y as i32) * 8;
-
-                        // Tile culling
-                        if world_x + 8 < world_left
-                            || world_x > world_right
-                            || world_y + 8 < world_top
-                            || world_y > world_bottom
-                        {
-                            continue;
-                        }
-
-                        let screen_x = (world_x as f32 - self.camera_x) * self.zoom;
-                        let screen_y = (world_y as f32 - self.camera_y) * self.zoom;
-
-                        if !tile.dirty {
-                            // Fast path: draw solid tile
-                            let fallback_color = match tile.subgrid[0][0].material {
-                                TerrainMaterial::Dirt => BROWN,
-                                TerrainMaterial::Rock => GRAY,
-                                TerrainMaterial::Water => BLUE,
-                                _ => DARKGRAY,
-                            };
-
-                            draw_rectangle(
-                                screen_x,
-                                screen_y,
-                                8.0 * self.zoom,
-                                8.0 * self.zoom,
-                                fallback_color,
-                            );
-
-                            continue;
-                        }
-
-                        // Slow path: per-subpixel render
-                        for sub_x in 0..tile.subgrid.len() {
-                            for sub_y in 0..tile.subgrid[sub_x].len() {
-                                let subpixel = &tile.subgrid[sub_x][sub_y];
-
-                                if subpixel.material == TerrainMaterial::Air {
-                                    continue;
-                                }
-
-                                let pixel_x = world_x + sub_x as i32;
-                                let pixel_y = world_y + sub_y as i32;
-
-                                // Subpixel culling
-                                if pixel_x < world_left
-                                    || pixel_x > world_right
-                                    || pixel_y < world_top
-                                    || pixel_y > world_bottom
-                                {
-                                    continue;
-                                }
-
-                                let sx = (pixel_x as f32 - self.camera_x) * self.zoom;
-                                let sy = (pixel_y as f32 - self.camera_y) * self.zoom;
-
-                                let color = match subpixel.material {
-                                    TerrainMaterial::Dirt => BROWN,
-                                    TerrainMaterial::Rock => GRAY,
-                                    TerrainMaterial::Water => BLUE,
-                                    _ => WHITE,
-                                };
-
-                                draw_rectangle(sx, sy, self.zoom, self.zoom, color);
-
-                                if subpixel.dig_target {
-                                    let overlay = Color::new(1.0, 0.0, 0.0, 0.4);
-                                    draw_rectangle(sx, sy, self.zoom, self.zoom, overlay);
-                                }
-                            }
-                        }
-
-                        // Clear dirty flag after rendering
-                        chunk.tiles[tile_x][tile_y].dirty = false;
-                    }
-                }
-            }
-
-            // ===== Draw the grid (after terrain) =====
+            let zoom = self.camera.zoom;
+            let camera_x = self.camera.x;
+            let camera_y = self.camera.y;
+            let screen_world_w = screen_width_px / zoom;
+            let screen_world_h = screen_height_px / zoom;
+            let world_left = camera_x.floor() as i32;
+            let world_top = camera_y.floor() as i32;
+            let world_right = (camera_x + screen_world_w).ceil() as i32;
+            let world_bottom = (camera_y + screen_world_h).ceil() as i32;
+            let chunk_size = 32;
             let tile_size = 8;
-            let grid_color = Color::new(1.0, 1.0, 1.0, 0.1);
+            let chunk_pixel_size = chunk_size * tile_size;
 
-            for x in (world_left..world_right).step_by(tile_size) {
-                let screen_x = (x as f32 - self.camera_x) * self.zoom;
-                draw_line(screen_x, 0.0, screen_x, screen_height_px, 1.0, grid_color);
+            for ((chunk_x, chunk_y), chunk) in zlevel.chunks.iter() {
+                self.draw_chunk(
+                    chunk_x,
+                    chunk_y,
+                    chunk,
+                    chunk_pixel_size,
+                    tile_size,
+                    world_left,
+                    world_right,
+                    world_top,
+                    world_bottom,
+                    camera_x,
+                    camera_y,
+                    zoom,
+                );
             }
-            for y in (world_top..world_bottom).step_by(tile_size) {
-                let screen_y = (y as f32 - self.camera_y) * self.zoom;
-                draw_line(0.0, screen_y, screen_width_px, screen_y, 1.0, grid_color);
+
+            draw_grid(
+                camera_x,
+                camera_y,
+                zoom,
+                screen_width_px,
+                screen_height_px,
+                tile_size,
+            );
+        }
+    }
+
+    fn draw_chunk(
+        &self,
+        chunk_x: &i32,
+        chunk_y: &i32,
+        chunk: &crate::world::chunk::Chunk,
+        chunk_pixel_size: i32,
+        tile_size: i32,
+        world_left: i32,
+        world_right: i32,
+        world_top: i32,
+        world_bottom: i32,
+        camera_x: f32,
+        camera_y: f32,
+        zoom: f32,
+    ) {
+        let chunk_pixel_x = chunk_x * chunk_pixel_size;
+        let chunk_pixel_y = chunk_y * chunk_pixel_size;
+
+        // Chunk culling (skip if completely outside view)
+        if chunk_pixel_x + chunk_pixel_size < world_left
+            || chunk_pixel_x > world_right
+            || chunk_pixel_y + chunk_pixel_size < world_top
+            || chunk_pixel_y > world_bottom
+        {
+            return;
+        }
+
+        // Precompute tile bounds for this chunk
+        let tile_x_start = ((world_left - chunk_pixel_x).max(0) / tile_size) as usize;
+        let tile_x_end = ((world_right - chunk_pixel_x).min(chunk_pixel_size - 1) / tile_size + 1).min(chunk.tiles.len() as i32) as usize;
+        let tile_y_start = ((world_top - chunk_pixel_y).max(0) / tile_size) as usize;
+        let tile_y_end = ((world_bottom - chunk_pixel_y).min(chunk_pixel_size - 1) / tile_size + 1).min(chunk.tiles[0].len() as i32) as usize;
+
+        for tile_x in tile_x_start..tile_x_end {
+            for tile_y in tile_y_start..tile_y_end {
+                self.draw_tile_in_chunk(
+                    &chunk.tiles[tile_x][tile_y],
+                    chunk_pixel_x,
+                    chunk_pixel_y,
+                    tile_x,
+                    tile_y,
+                    tile_size,
+                    world_left,
+                    world_right,
+                    world_top,
+                    world_bottom,
+                    camera_x,
+                    camera_y,
+                    zoom,
+                );
+            }
+        }
+    }
+
+    fn draw_tile_in_chunk(
+        &self,
+        tile: &crate::world::tile::Tile,
+        chunk_pixel_x: i32,
+        chunk_pixel_y: i32,
+        tile_x: usize,
+        tile_y: usize,
+        tile_size: i32,
+        world_left: i32,
+        world_right: i32,
+        world_top: i32,
+        world_bottom: i32,
+        camera_x: f32,
+        camera_y: f32,
+        zoom: f32,
+    ) {
+        let world_x = chunk_pixel_x + tile_x as i32 * tile_size;
+        let world_y = chunk_pixel_y + tile_y as i32 * tile_size;
+
+        // Tile culling (should be redundant, but double-check)
+        if world_x + tile_size < world_left
+            || world_x > world_right
+            || world_y + tile_size < world_top
+            || world_y > world_bottom
+        {
+            return;
+        }
+
+        self.tile_renderer.draw_tile(
+            tile,
+            world_x,
+            world_y,
+            camera_x,
+            camera_y,
+            zoom,
+            tile_size,
+            world_left,
+            world_right,
+            world_top,
+            world_bottom,
+        );
+    }
+
+    pub fn draw_world_map(&self, world_map: &WorldMap, camera: &Camera) {
+        clear_background(BLACK);
+        let cell_size = 8.0 * camera.zoom;
+        for x in 0..world_map.width {
+            for y in 0..world_map.height {
+                let biome = world_map.biomes[x][y];
+                let color = match biome {
+                    BiomeId::Plains => GREEN,
+                    BiomeId::Mountain => GRAY,
+                };
+                let sx = (x as f32 - camera.x) * cell_size;
+                let sy = (y as f32 - camera.y) * cell_size;
+                draw_rectangle(sx, sy, cell_size, cell_size, color);
             }
         }
     }
