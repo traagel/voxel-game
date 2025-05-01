@@ -14,6 +14,7 @@ use crate::worldgen::worldmap::WorldMapGenerator;
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderMode {
     WorldMap,
     LocalMap,
@@ -196,9 +197,14 @@ impl Game {
 
     fn update(&mut self) {
         self.update_creatures();
+        self.gui.dig_jobs = count_dig_jobs(&self.world);
+        self.gui.update(
+            &self.world,
+            self.render_mode,
+            if self.render_mode == RenderMode::WorldMap { Some(&self.world_map) } else { None },
+            if self.render_mode == RenderMode::WorldMap { Some(&self.world_map_camera) } else { None },
+        );
         if let RenderMode::LocalMap = self.render_mode {
-            self.gui.dig_jobs = count_dig_jobs(&self.world);
-            self.gui.update(&self.world);
             for p in &mut self.particles {
                 p.x += p.dx;
                 p.y += p.dy;
@@ -207,13 +213,20 @@ impl Game {
             }
             self.particles.retain(|p| p.life > 0);
         }
+        // World map regeneration logic
+        if self.gui.regenerate_requested {
+            let params = self.gui.worldgen_params;
+            let world_map_gen = WorldMapGenerator::new(self.gui.worldgen_seed, 128, 128, 0.02, Some(params));
+            self.world_map = world_map_gen.generate();
+            self.gui.regenerate_requested = false;
+        }
     }
 
     fn render(&mut self) {
         match self.render_mode {
             RenderMode::WorldMap => {
                 self.world_map_renderer
-                    .draw_world_map(&self.world_map, &self.world_map_camera);
+                    .draw_world_map_with_view(&self.world_map, &self.world_map_camera, self.gui.map_view, self.world_map.sea_level);
             }
             RenderMode::LocalMap => {
                 let state = GameState {
