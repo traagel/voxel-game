@@ -1,0 +1,121 @@
+{
+  "Mountain": {
+    "filename": "mountain.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Ocean": {
+    "filename": "ocean.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Sea": {
+    "filename": "sea.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "River": {
+    "filename": "river.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Beach": {
+    "filename": "beach.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Desert": {
+    "filename": "desert.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Forest": {
+    "filename": "forest.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Rainforest": {
+    "filename": "rainforest.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "TemperateForest": {
+    "filename": "temperateforest.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "BorealForest": {
+    "filename": "borealforest.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Taiga": {
+    "filename": "taiga.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Tundra": {
+    "filename": "tundra.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Swamp": {
+    "filename": "swamp.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Lake": {
+    "filename": "lake.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Hills": {
+    "filename": "hills.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Snow": {
+    "filename": "snow.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  },
+  "Jungle": {
+    "filename": "jungle.png",
+    "x": 0,
+    "y": 0,
+    "width": 256,
+    "height": 256
+  }
+}

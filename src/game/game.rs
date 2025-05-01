@@ -33,14 +33,15 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
         let gui = GuiState::new();
+        let world_map_renderer = WorldMapRenderer::new().await;
         let world_map_gen = WorldMapGenerator::new(42, gui.worldgen_width, gui.worldgen_height, 0.02, None);
         let world_map = world_map_gen.generate();
         Self {
             world: World::new(),
             local_map_renderer: LocalMapRenderer::default(),
-            world_map_renderer: WorldMapRenderer,
+            world_map_renderer,
             creatures: Vec::new(),
             particles: Vec::new(),
             gui,

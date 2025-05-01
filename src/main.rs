@@ -12,7 +12,7 @@ mod game;
 
 #[macroquad::main("Voxel Engine")]
 async fn main() {
-    let mut game = Game::new();
+    let mut game = Game::new().await;
     game.init();
     game.run().await;
 }
