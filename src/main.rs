@@ -1,13 +1,14 @@
 mod creature;
-mod generator;
 pub mod particle;
 mod renderer;
 mod world;
+mod worldgen;
 
-use generator::generator::WorldGenerator;
 use macroquad::prelude::*;
 use renderer::renderer::Renderer;
 use world::world::World;
+use worldgen::builder::WorldGeneratorBuilder;
+use worldgen::generator::WorldGenerator;
 
 use creature::creature::Creature;
 
