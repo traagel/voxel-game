@@ -6,8 +6,13 @@ use crate::{
 use std::collections::HashMap;
 
 #[inline]
-fn frame(col: f32, row: f32) -> Rect {
-    Rect::new(col * 16.0, row * 16.0, 16.0, 16.0)
+fn frame(sprite: &SpriteInfo, col: f32, row: f32) -> Rect {
+    Rect::new(
+        sprite.x as f32 + col * 16.0,
+        sprite.y as f32 + row * 16.0,
+        16.0,
+        16.0,
+    )
 }
 
 #[inline]
@@ -56,7 +61,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(0.0, row_parity)),
+                source:    Some(frame(sprite, 0.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -67,7 +72,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(1.0, row_parity)),
+                source:    Some(frame(sprite, 1.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -82,7 +87,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(4.0, row_parity)),
+                source:    Some(frame(sprite, 4.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -93,7 +98,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(5.0, row_parity)),
+                source:    Some(frame(sprite, 5.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -109,7 +114,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, 4.0)),
+                source:    Some(frame(sprite, col_parity, 4.0)),
                 ..Default::default()
             },
         );
@@ -124,7 +129,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, 1.0)),
+                source:    Some(frame(sprite, col_parity, 1.0)),
                 ..Default::default()
             },
         );
@@ -138,7 +143,7 @@ pub fn draw_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, row_parity)), // body sprite
+                source:    Some(frame(sprite, col_parity, row_parity)), // body sprite
                 ..Default::default()
             },
         );
@@ -154,7 +159,7 @@ pub fn draw_mountain_tile(
         WHITE,
         DrawTextureParams {
             dest_size: Some(Vec2::new(draw, draw)),
-            source:    Some(frame(col_parity, 0.0)),
+            source:    Some(frame(sprite, col_parity, 0.0)),
             ..Default::default()
         },
     );
@@ -176,10 +181,20 @@ pub fn draw_snow_mountain_tile(
     draw: f32,
     off:  f32,
 ) -> bool {
-    if map.biomes[x][y] != BiomeId::Snow { return false; }
+    println!("[snow_mtn] called at ({}, {}), biome: {:?}", x, y, map.biomes[x][y]);
+    if map.biomes[x][y] != BiomeId::Snow {
+        println!("[snow_mtn] Not snow biome at ({}, {}): {:?}", x, y, map.biomes[x][y]);
+        return false;
+    }
 
-    let Some(sprite) = sprites.get("Mountain_A2") else { return false; };
-    let Some(tex)    = texs.get(&sprite.filename)  else { return false; };
+    let Some(sprite) = sprites.get("Mountain_A2") else {
+        println!("[snow_mtn] Missing Mountain_A2 sprite in sprite map");
+        return false;
+    };
+    let Some(tex)    = texs.get(&sprite.filename)  else {
+        println!("[snow_mtn] Missing texture for filename: {}", sprite.filename);
+        return false;
+    };
 
     let (w, h)  = (map.width as isize, map.height as isize);
     let (xi, yi) = (x as isize, y as isize);
@@ -203,7 +218,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(0.0, row_parity)),
+                source:    Some(frame(sprite, 0.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -214,7 +229,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(1.0, row_parity)),
+                source:    Some(frame(sprite, 1.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -229,7 +244,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(4.0, row_parity)),
+                source:    Some(frame(sprite, 4.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -240,7 +255,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(5.0, row_parity)),
+                source:    Some(frame(sprite, 5.0, row_parity)),
                 ..Default::default()
             },
         );
@@ -256,7 +271,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, 4.0)),
+                source:    Some(frame(sprite, col_parity, 4.0)),
                 ..Default::default()
             },
         );
@@ -271,7 +286,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, 1.0)),
+                source:    Some(frame(sprite, col_parity, 1.0)),
                 ..Default::default()
             },
         );
@@ -285,7 +300,7 @@ pub fn draw_snow_mountain_tile(
             WHITE,
             DrawTextureParams {
                 dest_size: Some(Vec2::new(draw, draw)),
-                source:    Some(frame(col_parity, row_parity)), // body sprite
+                source:    Some(frame(sprite, col_parity, row_parity)), // body sprite
                 ..Default::default()
             },
         );
@@ -300,10 +315,11 @@ pub fn draw_snow_mountain_tile(
         WHITE,
         DrawTextureParams {
             dest_size: Some(Vec2::new(draw, draw)),
-            source:    Some(frame(col_parity, 0.0)),
+            source:    Some(frame(sprite, col_parity, 0.0)),
             ..Default::default()
         },
     );
 
+    println!("[snow_mtn] Drew snow mountain at ({}, {})", x, y);
     true
 }
