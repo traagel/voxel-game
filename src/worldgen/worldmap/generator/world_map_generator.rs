@@ -10,6 +10,7 @@ use super::biome_classify::classify_biome;
 use rand::seq::SliceRandom;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::cmp::Ordering;
+use std::time::Instant;
 
 #[derive(Copy, Clone)]
 struct Node {
@@ -61,6 +62,7 @@ impl WorldMapGenerator {
     }
 
     pub fn generate(&self) -> WorldMap {
+        let total_start = Instant::now();
         let p = &self.params;
         let perlin_continent = Perlin::new(self.seed);
         let perlin_detail = Perlin::new(self.seed.wrapping_add(1));
@@ -72,6 +74,7 @@ impl WorldMapGenerator {
         let continent_radius = (self.width.min(self.height) as f64) * 0.33;
 
         // 1. Generate base elevation & moisture
+        let elev_start = Instant::now();
         let (mut elevation, mut moisture) = self.generate_elevation_and_moisture(
             &perlin_continent,
             &perlin_detail,
@@ -80,35 +83,55 @@ impl WorldMapGenerator {
             &continent_centers,
             continent_radius,
         );
+        println!("[GEN] Elevation & moisture: {:.2?}", elev_start.elapsed());
 
         // === Add connected mountain ranges ===
+        let mountain_start = Instant::now();
         self.add_mountain_ranges(&mut elevation);
+        println!("[GEN] Mountain ranges: {:.2?}", mountain_start.elapsed());
 
         // Generate temperature map
+        let temp_start = Instant::now();
         let temperature = self.generate_temperature_map(&elevation);
+        println!("[GEN] Temperature map: {:.2?}", temp_start.elapsed());
 
         // Generate precipitation map
+        let precip_start = Instant::now();
         let precipitation = self.generate_precipitation_map();
+        println!("[GEN] Precipitation map: {:.2?}", precip_start.elapsed());
 
         // Generate wind direction map
+        let wind_start = Instant::now();
         let wind_direction = self.generate_wind_direction_map();
+        println!("[GEN] Wind direction map: {:.2?}", wind_start.elapsed());
 
         // Generate soil fertility map (based on elevation, precipitation, and proximity to rivers)
+        let soil_start = Instant::now();
         let soil_fertility = self.generate_soil_fertility_map(&elevation, &precipitation, &self.build_river_mask(&self.accumulate_river_flow(&elevation, 0.5, 0.0)));
+        println!("[GEN] Soil fertility map: {:.2?}", soil_start.elapsed());
 
         // Generate vegetation map (based on temperature, precipitation, and soil fertility)
+        let veg_start = Instant::now();
         let vegetation = self.generate_vegetation_map(&temperature, &precipitation, &soil_fertility);
+        println!("[GEN] Vegetation map: {:.2?}", veg_start.elapsed());
 
         // Generate resources map (randomly assign some resources)
+        let res_start = Instant::now();
         let resources = self.generate_resources_map();
+        println!("[GEN] Resources map: {:.2?}", res_start.elapsed());
 
         // 2. Erosion
+        let erosion_start = Instant::now();
         self.apply_erosion(&mut elevation);
+        println!("[GEN] Erosion: {:.2?}", erosion_start.elapsed());
 
         // 3. Global percentiles for thresholds
+        let percent_start = Instant::now();
         let (sea_level, coast_level, mountain_level) = self.calculate_percentiles(&elevation);
+        println!("[GEN] Percentiles: {:.2?}", percent_start.elapsed());
 
         // 5. Classify biomes
+        let biome_start = Instant::now();
         let biomes = self.classify_biomes(
             &elevation,
             &moisture,
@@ -118,11 +141,15 @@ impl WorldMapGenerator {
             coast_level,
             mountain_level,
         );
+        println!("[GEN] Biome classification: {:.2?}", biome_start.elapsed());
 
         // 6. Build river mask
+        let river_start = Instant::now();
         let rivers = self.build_river_mask(&self.accumulate_river_flow(&elevation, coast_level, sea_level));
+        println!("[GEN] River mask: {:.2?}", river_start.elapsed());
 
         // === New: Generate category maps ===
+        let catmap_start = Instant::now();
         use crate::world::worldmap::biome::{classify_temperature, classify_vegetation, classify_precipitation, classify_elevation, TemperatureType, VegetationType, PrecipitationType, ElevationType};
         let mut temperature_map = vec![vec![TemperatureType::Temperate; self.height]; self.width];
         let mut vegetation_map = vec![vec![VegetationType::Grass; self.height]; self.width];
@@ -140,6 +167,7 @@ impl WorldMapGenerator {
                 elevation_map[x][y] = classify_elevation(elev, sea_level, coast_level, mountain_level);
             }
         }
+        println!("[GEN] Category maps: {:.2?}", catmap_start.elapsed());
 
         // === LOGGING: World properties and biome/elevation counts ===
         println!("--- World Generation Log ---");
@@ -178,6 +206,7 @@ impl WorldMapGenerator {
         let rivers = self.build_river_mask(&flow);
 
         // === Civilization and City Generation ===
+        let civ_start = Instant::now();
         use crate::world::worldmap::{Civilization, CivilizationInstance, Culture, Alignment, SocietalTrait, City};
         use rand::{SeedableRng, Rng};
         use rand::rngs::StdRng;
@@ -330,8 +359,10 @@ impl WorldMapGenerator {
                 population,
             });
         }
+        println!("[GEN] Civilization/city placement: {:.2?}", civ_start.elapsed());
 
         // === Civilization Relations and Trade Routes ===
+        let trade_start = Instant::now();
         use crate::world::worldmap::{Relation, CivilizationRelations, TradeRoute};
         let mut relations = HashMap::new();
         // Assign random relations between all pairs (symmetric, no self-relations)
@@ -362,6 +393,11 @@ impl WorldMapGenerator {
             &rivers,
             sea_level,
         );
+        println!("[GEN] Trade routes: {:.2?}", trade_start.elapsed());
+
+        let total_tiles = self.width * self.height;
+        println!("[GEN] Total tiles generated: {}", total_tiles);
+        println!("[GEN] World generation TOTAL: {:.2?}", total_start.elapsed());
 
         WorldMap {
             width: self.width,
