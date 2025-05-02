@@ -3,6 +3,7 @@ pub struct GuiState {
     pub worldgen_height: usize,
     pub selected_city: Option<crate::world::worldmap::city::City>,
     pub show_city_info: bool,
+    pub selected_civ: Option<crate::world::worldmap::civilization::Civilization>,
 }
 
 impl GuiState {
@@ -12,6 +13,7 @@ impl GuiState {
             worldgen_height: 128,
             selected_city: None,
             show_city_info: false,
+            selected_civ: None,
         }
     }
 } 

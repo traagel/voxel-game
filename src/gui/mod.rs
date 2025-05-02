@@ -8,7 +8,10 @@ use crate::world::worldmap::world_map::WorldMap;
 use crate::renderer::camera::Camera;
 use crate::renderer::world_map_renderer::MapView;
 use crate::world::worldmap::city::City;
-mod city_info_window;
+use crate::world::worldmap::civilization::Civilization;
+pub mod city_info_window;
+pub use city_info_window::city_info_window_at;
+pub mod civ_portraits;
 
 pub struct GuiState {
     pub show_ui: bool,
@@ -22,6 +25,7 @@ pub struct GuiState {
     pub worldgen_height: usize,
     pub selected_city: Option<City>,
     pub show_city_info: bool,
+    pub selected_civ: Option<Civilization>,
 }
 
 impl GuiState {
@@ -38,10 +42,11 @@ impl GuiState {
             worldgen_height: 128,
             selected_city: None,
             show_city_info: false,
+            selected_civ: None,
         }
     }
 
-    pub fn update(&mut self, world: &World, render_mode: RenderMode, world_map: Option<&WorldMap>, world_map_camera: Option<&Camera>) {
+    pub fn update(&mut self, world: &World, render_mode: RenderMode, world_map: Option<&WorldMap>, world_map_camera: Option<&Camera>, portraits: Option<&crate::gui::civ_portraits::CivPortraits>) {
         if is_key_pressed(KeyCode::Tab) {
             self.show_ui = !self.show_ui;
         }
@@ -60,17 +65,38 @@ impl GuiState {
                     if let Some(city) = world_map.cities.iter().find(|c| c.x == tx as usize && c.y == ty as usize) {
                         self.selected_city = Some(city.clone());
                         self.show_city_info = true;
+                        self.selected_civ = Some(city.civ);
                     }
                 }
             }
         }
 
         if self.show_city_info {
-            if let Some(city) = &self.selected_city {
-                city_info_window::city_info_window(city, &mut self.show_city_info);
+            if let (Some(city), Some(portraits), Some(world_map)) = (&self.selected_city, portraits, world_map) {
+                // Center the city info window below the civ portrait
+                let win_width = 420.0;
+                let win_height = 340.0;
+                let portrait_size = 96.0;
+                let portrait_y = 16.0;
+                let gap = 24.0;
+                let win_x = (screen_width() - win_width) / 2.0;
+                let win_y = portrait_y + portrait_size + gap;
+                city_info_window::city_info_window_at(city, &mut self.show_city_info, portraits, vec2(win_x, win_y), vec2(win_width, win_height), world_map);
                 if !self.show_city_info {
                     self.selected_city = None;
                 }
+            } else if self.selected_city.is_some() && portraits.is_none() {
+                // Optionally, show a loading message
+                let win_width = 420.0;
+                let win_height = 80.0;
+                let portrait_size = 96.0;
+                let portrait_y = 16.0;
+                let gap = 24.0;
+                let win_x = (screen_width() - win_width) / 2.0;
+                let win_y = portrait_y + portrait_size + gap;
+                root_ui().window(hash!("city_info_loading"), vec2(win_x, win_y), vec2(win_width, win_height), |ui| {
+                    ui.label(None, "Loading civilization portraits...");
+                });
             } else {
                 self.show_city_info = false;
             }

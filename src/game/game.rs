@@ -13,6 +13,9 @@ use crate::worldgen::localmap::builder::WorldGeneratorBuilder;
 use crate::worldgen::worldmap::WorldMapGenerator;
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
+use crate::gui::civ_portraits::CivPortraits;
+use macroquad::ui::{hash, root_ui};
+use crate::world::worldmap::civilization::Civilization;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderMode {
@@ -32,14 +35,20 @@ pub struct Game {
     world_map_camera: Camera,
     previous_mouse_x: f32,
     previous_mouse_y: f32,
+    portraits: Option<CivPortraits>,
 }
 
 impl Game {
     pub async fn new() -> Self {
-        let gui = GuiState::new();
+        let mut gui = GuiState::new();
         let world_map_renderer = WorldMapRenderer::new().await;
         let world_map_gen = WorldMapGenerator::new(42, gui.worldgen_width, gui.worldgen_height, 0.02, None);
         let world_map = world_map_gen.generate();
+        let portraits = Some(CivPortraits::load().await);
+
+        // Set a default selected civilization for testing
+        gui.selected_civ = Some(Civilization::Human);
+
         Self {
             world: World::new(),
             local_map_renderer: LocalMapRenderer::default(),
@@ -52,6 +61,7 @@ impl Game {
             world_map_camera: Camera::default(),
             previous_mouse_x: 0.0, // Initialize previous mouse position
             previous_mouse_y: 0.0, // Initialize previous mouse position
+            portraits,
         }
     }
 
@@ -262,6 +272,7 @@ impl Game {
             self.render_mode,
             if self.render_mode == RenderMode::WorldMap { Some(&self.world_map) } else { None },
             if self.render_mode == RenderMode::WorldMap { Some(&self.world_map_camera) } else { None },
+            self.portraits.as_ref(),
         );
         if let RenderMode::LocalMap = self.render_mode {
             for p in &mut self.particles {
@@ -307,6 +318,25 @@ impl Game {
                     let sy = (p.y - self.local_map_renderer.get_camera_y()) * self.local_map_renderer.get_zoom();
                     draw_circle(sx, sy, 0.2 * self.local_map_renderer.get_camera_y(), YELLOW);
                 }
+            }
+        }
+        // Draw only the selected civilization's portrait at the top middle of the screen
+        if let (Some(civ), Some(portraits)) = (self.gui.selected_civ, self.portraits.as_ref()) {
+            if let Some(src_rect) = portraits.get_portrait_rect(civ) {
+                let portrait_size = 96.0;
+                let px = (screen_width() - portrait_size) / 2.0;
+                let py = 16.0;
+                draw_texture_ex(
+                    portraits.get_texture(),
+                    px,
+                    py,
+                    WHITE,
+                    DrawTextureParams {
+                        dest_size: Some(Vec2::new(portrait_size, portrait_size)),
+                        source: Some(src_rect),
+                        ..Default::default()
+                    },
+                );
             }
         }
     }

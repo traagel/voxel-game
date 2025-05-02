@@ -7,7 +7,7 @@
     { "type": "portrait", "civilization": "OrcGoblin", "variant": "Orc", "position": [0, 1] },
     { "type": "portrait", "civilization": "Merfolk", "position": [1, 1] },
     { "type": "portrait", "civilization": "GnomeHalfling", "position": [2, 1] },
-    { "type": "portrait", "civilization": "OrcGoblin", "variant": "Goblin", "position": [0, 2] },
+    { "type": "portrait", "civilization": "FairyFae", "position": [0, 2] },
     { "type": "portrait", "civilization": "Lizardfolk", "position": [1, 2] },
     { "type": "portrait", "civilization": "Kobold", "position": [2, 2] }
   ],
