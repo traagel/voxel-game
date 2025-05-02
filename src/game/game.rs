@@ -30,6 +30,8 @@ pub struct Game {
     world_map: WorldMap,
     render_mode: RenderMode,
     world_map_camera: Camera,
+    previous_mouse_x: f32,
+    previous_mouse_y: f32,
 }
 
 impl Game {
@@ -48,6 +50,8 @@ impl Game {
             world_map,
             render_mode: RenderMode::WorldMap, // Start in world map mode
             world_map_camera: Camera::default(),
+            previous_mouse_x: 0.0, // Initialize previous mouse position
+            previous_mouse_y: 0.0, // Initialize previous mouse position
         }
     }
 
@@ -86,93 +90,146 @@ impl Game {
                 RenderMode::LocalMap => RenderMode::WorldMap,
             };
         }
+    
         match self.render_mode {
-            RenderMode::LocalMap => {
-                let move_speed = 200.0 * get_frame_time();
-                let zoom_speed = 0.1;
-
-                if is_key_down(KeyCode::W) {
-                    self.local_map_renderer.move_camera_delta(0.0, -move_speed);
-                }
-                if is_key_down(KeyCode::S) {
-                    self.local_map_renderer.move_camera_delta(0.0, move_speed);
-                }
-                if is_key_down(KeyCode::A) {
-                    self.local_map_renderer.move_camera_delta(-move_speed, 0.0);
-                }
-                if is_key_down(KeyCode::D) {
-                    self.local_map_renderer.move_camera_delta(move_speed, 0.0);
-                }
-
-                let wheel = mouse_wheel().1;
-                if wheel != 0.0 {
-                    let old_zoom = self.local_map_renderer.get_zoom();
-                    let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
-                    if (new_zoom - old_zoom).abs() > f32::EPSILON {
-                        let mouse = mouse_position();
-                        let mouse_x = mouse.0;
-                        let mouse_y = mouse.1;
-                        let world_x = self.local_map_renderer.get_camera_x() + mouse_x / old_zoom;
-                        let world_y = self.local_map_renderer.get_camera_y() + mouse_y / old_zoom;
-                        self.local_map_renderer.set_zoom(new_zoom);
-                        let new_screen_x = (world_x - self.local_map_renderer.get_camera_x()) * new_zoom;
-                        let new_screen_y = (world_y - self.local_map_renderer.get_camera_y()) * new_zoom;
-                        let camera_x =
-                            self.local_map_renderer.get_camera_x() + (mouse_x - new_screen_x) / new_zoom;
-                        let camera_y =
-                            self.local_map_renderer.get_camera_y() + (mouse_y - new_screen_y) / new_zoom;
-                        self.local_map_renderer.move_camera_delta(
-                            camera_x - self.local_map_renderer.get_camera_x(),
-                            camera_y - self.local_map_renderer.get_camera_y(),
-                        );
+                RenderMode::LocalMap => {
+                    let move_speed = 200.0 * get_frame_time();
+                    let zoom_speed = 0.2;
+            
+                    // WASD pan
+                    if is_key_down(KeyCode::W) { self.local_map_renderer.move_camera_delta(0.0, -move_speed); }
+                    if is_key_down(KeyCode::S) { self.local_map_renderer.move_camera_delta(0.0,  move_speed); }
+                    if is_key_down(KeyCode::A) { self.local_map_renderer.move_camera_delta(-move_speed, 0.0); }
+                    if is_key_down(KeyCode::D) { self.local_map_renderer.move_camera_delta( move_speed, 0.0); }
+            
+                    // Zoom around cursor
+                    let wheel = mouse_wheel().1;
+                    if wheel != 0.0 {
+                        let old_zoom = self.local_map_renderer.get_zoom();
+                        let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
+                        if (new_zoom - old_zoom).abs() > f32::EPSILON {
+                            // compute world‐space point under cursor pre‐zoom
+                            let (mx, my) = mouse_position();
+                            let world_x = self.local_map_renderer.get_camera_x() + mx / old_zoom;
+                            let world_y = self.local_map_renderer.get_camera_y() + my / old_zoom;
+            
+                            // apply new zoom
+                            self.local_map_renderer.set_zoom(new_zoom);
+            
+                            // recenter camera so (mx,my) stays over (world_x,world_y)
+                            let new_cam_x = world_x - mx / new_zoom;
+                            let new_cam_y = world_y - my / new_zoom;
+                            self.local_map_renderer.move_camera_delta(
+                                new_cam_x - self.local_map_renderer.get_camera_x(),
+                                new_cam_y - self.local_map_renderer.get_camera_y(),
+                            );
+                        }
                     }
-                }
+            
+                    // Start drag
+                    if is_mouse_button_pressed(MouseButton::Middle) {
+                        let (mx, my) = mouse_position();
+                        self.previous_mouse_x = mx;
+                        self.previous_mouse_y = my;
+                    }
+                    // Continue drag (1:1)
+                    if is_mouse_button_down(MouseButton::Middle) {
+                        let (mx, my) = mouse_position();
+                        let dx = mx - self.previous_mouse_x;
+                        let dy = my - self.previous_mouse_y;
+            
+                        // divide by zoom so 1px mouse = 1px world
+                        let inv_zoom = 1.0 / self.local_map_renderer.get_zoom();
+                        self.local_map_renderer
+                            .move_camera_delta(-dx * inv_zoom, -dy * inv_zoom);
+            
+                        self.previous_mouse_x = mx;
+                        self.previous_mouse_y = my;
+                    }
+                    // End drag
+                    if is_mouse_button_released(MouseButton::Middle) {
+                        self.previous_mouse_x = 0.0;
+                        self.previous_mouse_y = 0.0;
+                    }
 
+                // Logic for painting and digging with mouse buttons
                 let mouse_pos = mouse_position();
-                let mouse_world_x =
-                    self.local_map_renderer.get_camera_x() + mouse_pos.0 / self.local_map_renderer.get_zoom();
-                let mouse_world_y =
-                    self.local_map_renderer.get_camera_y() + mouse_pos.1 / self.local_map_renderer.get_zoom();
-
+                let mouse_world_x = self.local_map_renderer.get_camera_x() + mouse_pos.0 / self.local_map_renderer.get_zoom();
+                let mouse_world_y = self.local_map_renderer.get_camera_y() + mouse_pos.1 / self.local_map_renderer.get_zoom();
+            
                 if is_mouse_button_down(MouseButton::Left) {
                     paint_rock(&mut self.world, mouse_world_x as i32, mouse_world_y as i32);
                 }
                 if is_mouse_button_down(MouseButton::Right) {
-                    let mouse_pos = mouse_position();
-                    let world_x =
-                        self.local_map_renderer.get_camera_x() + mouse_pos.0 / self.local_map_renderer.get_zoom();
-                    let world_y =
-                        self.local_map_renderer.get_camera_y() + mouse_pos.1 / self.local_map_renderer.get_zoom();
-                    paint_dig_target(&mut self.world, world_x as i32, world_y as i32);
+                    paint_dig_target(&mut self.world, mouse_world_x as i32, mouse_world_y as i32);
                 }
             }
-            RenderMode::WorldMap => {
-                let move_speed = 200.0 * get_frame_time();
-                let zoom_speed = 0.1;
-
-                if is_key_down(KeyCode::W) {
-                    self.world_map_camera.move_delta(0.0, -move_speed);
-                }
-                if is_key_down(KeyCode::S) {
-                    self.world_map_camera.move_delta(0.0, move_speed);
-                }
-                if is_key_down(KeyCode::A) {
-                    self.world_map_camera.move_delta(-move_speed, 0.0);
-                }
-                if is_key_down(KeyCode::D) {
-                    self.world_map_camera.move_delta(move_speed, 0.0);
-                }
-
-                let wheel = mouse_wheel().1;
-                if wheel != 0.0 {
-                    let old_zoom = self.world_map_camera.zoom;
-                    let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
-                    self.world_map_camera.set_zoom(new_zoom);
-                }
+                RenderMode::WorldMap => {
+                    let move_speed = 200.0 * get_frame_time();
+                    let zoom_speed = 0.2;
+            
+                    // WASD pan
+                    if is_key_down(KeyCode::W) { self.world_map_camera.move_delta(0.0, -move_speed); }
+                    if is_key_down(KeyCode::S) { self.world_map_camera.move_delta(0.0,  move_speed); }
+                    if is_key_down(KeyCode::A) { self.world_map_camera.move_delta(-move_speed, 0.0); }
+                    if is_key_down(KeyCode::D) { self.world_map_camera.move_delta( move_speed, 0.0); }
+            
+                    // Zoom around cursor (account for 8px tiles)
+                    let wheel = mouse_wheel().1;
+                    if wheel != 0.0 {
+                        const TILE_PX: f32 = 8.0;
+                        let old_zoom = self.world_map_camera.zoom;
+                        let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
+            
+                        // old/full scale in px-per-world-unit
+                        let old_scale = TILE_PX * old_zoom;
+                        let (mx, my) = mouse_position();
+                        let world_x = self.world_map_camera.x + mx / old_scale;
+                        let world_y = self.world_map_camera.y + my / old_scale;
+            
+                        // apply new zoom
+                        self.world_map_camera.set_zoom(new_zoom);
+                        let new_scale = TILE_PX * new_zoom;
+            
+                        // recenter
+                        let new_cam_x = world_x - mx / new_scale;
+                        let new_cam_y = world_y - my / new_scale;
+                        self.world_map_camera.move_delta(
+                            new_cam_x - self.world_map_camera.x,
+                            new_cam_y - self.world_map_camera.y,
+                        );
+                    }
+            
+                    // Start drag
+                    if is_mouse_button_pressed(MouseButton::Middle) {
+                        let (mx, my) = mouse_position();
+                        self.previous_mouse_x = mx;
+                        self.previous_mouse_y = my;
+                    }
+                    // Continue drag
+                    if is_mouse_button_down(MouseButton::Middle) {
+                        let (mx, my) = mouse_position();
+                        let dx = mx - self.previous_mouse_x;
+                        let dy = my - self.previous_mouse_y;
+            
+                        const TILE_PX: f32 = 8.0;
+                        let inv_scale = 1.0 / (TILE_PX * self.world_map_camera.zoom);
+                        self.world_map_camera
+                            .move_delta(-dx * inv_scale, -dy * inv_scale);
+            
+                        self.previous_mouse_x = mx;
+                        self.previous_mouse_y = my;
+                    }
+                    // End drag
+                    if is_mouse_button_released(MouseButton::Middle) {
+                        self.previous_mouse_x = 0.0;
+                        self.previous_mouse_y = 0.0;
+                    }
             }
         }
     }
-
+    
+    
     fn update_creatures(&mut self) {
         if let RenderMode::LocalMap = self.render_mode {
             for creature in &mut self.creatures {
