@@ -1,7 +1,8 @@
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui};
 use crate::world::worldmap::city::City;
-use crate::world::worldmap::civilization::{Civilization, BiomeId};
+use crate::world::worldmap::civilization::Civilization;
+use crate::world::worldmap::biome::BiomeId;
 
 pub fn city_info_window(city: &City, show: &mut bool) {
     root_ui().window(hash!("city_info_window"), vec2(900.0, 80.0), vec2(420.0, 340.0), |ui| {

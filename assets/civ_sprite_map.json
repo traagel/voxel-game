@@ -1,0 +1,15 @@
+{
+  "tileSize": [341, 341],
+  "tiles": [
+    { "type": "portrait", "civilization": "Human", "position": [0, 0] },
+    { "type": "portrait", "civilization": "Elf", "position": [1, 0] },
+    { "type": "portrait", "civilization": "Dwarf", "position": [2, 0] },
+    { "type": "portrait", "civilization": "OrcGoblin", "variant": "Orc", "position": [0, 1] },
+    { "type": "portrait", "civilization": "Merfolk", "position": [1, 1] },
+    { "type": "portrait", "civilization": "GnomeHalfling", "position": [2, 1] },
+    { "type": "portrait", "civilization": "OrcGoblin", "variant": "Goblin", "position": [0, 2] },
+    { "type": "portrait", "civilization": "Lizardfolk", "position": [1, 2] },
+    { "type": "portrait", "civilization": "Kobold", "position": [2, 2] }
+  ],
+  "image": "civ_card.png"
+}
