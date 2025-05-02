@@ -23,7 +23,7 @@ cargo run --release
 ```
 
 ### Controls
-- Switch between world map and local map with <Tab>
+- Switch between world map and local map with <kbd>Tab</kbd>
 - Zoom and pan with your mouse or keyboard
 - Dig and build using mouse buttons in local map mode
 
