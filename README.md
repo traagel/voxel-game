@@ -2,7 +2,13 @@
 
 A fantasy world colony simulator and procedural world map generator written in Rust using Macroquad.
 
+**Version: 0.1 alpha – World Generator Demo**
+
+_Currently expanding on the tileset. Features animated water for ocean, river, and sea biomes._
+
 ## Features
+- Animated water for ocean, river, and sea biomes (water tileset demo)
+- Expanding and improving biome tileset (work in progress)
 - Fantasy world simulation: manage a colony in a procedurally generated world
 - Procedural world generation with biomes, elevation, rivers, civilizations, and cities
 - Biome sprite rendering (PNG assets, see `assets/biome_sprite_map.json`)

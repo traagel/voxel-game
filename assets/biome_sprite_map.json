@@ -161,5 +161,14 @@
     "y": 0,
     "width": 256,
     "height": 256
+  },
+  "WaterAnim": {
+    "filename": "water.png",
+    "x": 0,
+    "y": 0,
+    "width": 480,
+    "height": 16,
+    "tile_width": 30,
+    "tile_height": 1
   }
 }

@@ -181,18 +181,14 @@ pub fn draw_snow_mountain_tile(
     draw: f32,
     off:  f32,
 ) -> bool {
-    println!("[snow_mtn] called at ({}, {}), biome: {:?}", x, y, map.biomes[x][y]);
     if map.biomes[x][y] != BiomeId::Snow {
-        println!("[snow_mtn] Not snow biome at ({}, {}): {:?}", x, y, map.biomes[x][y]);
         return false;
     }
 
     let Some(sprite) = sprites.get("Mountain_A2") else {
-        println!("[snow_mtn] Missing Mountain_A2 sprite in sprite map");
         return false;
     };
     let Some(tex)    = texs.get(&sprite.filename)  else {
-        println!("[snow_mtn] Missing texture for filename: {}", sprite.filename);
         return false;
     };
 
@@ -320,6 +316,5 @@ pub fn draw_snow_mountain_tile(
         },
     );
 
-    println!("[snow_mtn] Drew snow mountain at ({}, {})", x, y);
     true
 }
