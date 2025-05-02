@@ -7,6 +7,8 @@ use crate::game::game::RenderMode;
 use crate::world::worldmap::world_map::WorldMap;
 use crate::renderer::camera::Camera;
 use crate::renderer::world_map_renderer::MapView;
+use crate::world::worldmap::city::City;
+mod city_info_window;
 
 pub struct GuiState {
     pub show_ui: bool,
@@ -18,6 +20,8 @@ pub struct GuiState {
     pub map_view: MapView,
     pub worldgen_width: usize,
     pub worldgen_height: usize,
+    pub selected_city: Option<City>,
+    pub show_city_info: bool,
 }
 
 impl GuiState {
@@ -32,12 +36,44 @@ impl GuiState {
             map_view: MapView::Biome,
             worldgen_width: 128,
             worldgen_height: 128,
+            selected_city: None,
+            show_city_info: false,
         }
     }
 
     pub fn update(&mut self, world: &World, render_mode: RenderMode, world_map: Option<&WorldMap>, world_map_camera: Option<&Camera>) {
         if is_key_pressed(KeyCode::Tab) {
             self.show_ui = !self.show_ui;
+        }
+
+        // --- City click detection (WorldMap mode only) ---
+        if let (RenderMode::WorldMap, Some(world_map), Some(camera)) = (render_mode, world_map, world_map_camera) {
+            let mouse = mouse_position();
+            let cell_size = 8.0 * camera.zoom;
+            let wx = camera.x + mouse.0 / cell_size;
+            let wy = camera.y + mouse.1 / cell_size;
+            let tx = wx.floor() as isize;
+            let ty = wy.floor() as isize;
+            if is_mouse_button_pressed(MouseButton::Left) {
+                if tx >= 0 && ty >= 0 && (tx as usize) < world_map.width && (ty as usize) < world_map.height {
+                    // Check if a city is at this tile
+                    if let Some(city) = world_map.cities.iter().find(|c| c.x == tx as usize && c.y == ty as usize) {
+                        self.selected_city = Some(city.clone());
+                        self.show_city_info = true;
+                    }
+                }
+            }
+        }
+
+        if self.show_city_info {
+            if let Some(city) = &self.selected_city {
+                city_info_window::city_info_window(city, &mut self.show_city_info);
+                if !self.show_city_info {
+                    self.selected_city = None;
+                }
+            } else {
+                self.show_city_info = false;
+            }
         }
 
         if self.show_ui {
