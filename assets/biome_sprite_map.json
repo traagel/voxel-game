@@ -6,6 +6,50 @@
     "width": 256,
     "height": 256
   },
+  "Mountain_A1": {
+    "filename": "mountains.png",
+    "x": 0,
+    "y": 0,
+    "width": 96,
+    "height": 80,
+    "origin": [0, 0],
+    "tile_width": 6,
+    "tile_height": 5,
+    "core": [2, 2, 2, 2]
+  },
+  "Mountain_A2": {
+    "filename": "mountains.png",
+    "x": 96,
+    "y": 0,
+    "width": 96,
+    "height": 80,
+    "origin": [6, 0],
+    "tile_width": 6,
+    "tile_height": 5,
+    "core": [8, 2, 2, 2]
+  },
+  "Mountain_B1": {
+    "filename": "mountains.png",
+    "x": 0,
+    "y": 80,
+    "width": 64,
+    "height": 64,
+    "origin": [0, 5],
+    "tile_width": 4,
+    "tile_height": 4,
+    "core": [1, 6, 2, 2]
+  },
+  "Mountain_B2": {
+    "filename": "mountains.png",
+    "x": 96,
+    "y": 80,
+    "width": 64,
+    "height": 64,
+    "origin": [6, 5],
+    "tile_width": 4,
+    "tile_height": 4,
+    "core": [7, 6, 2, 2]
+  },
   "Ocean": {
     "filename": "ocean.png",
     "x": 0,

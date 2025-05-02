@@ -1,0 +1,31 @@
+{
+    "Mountain_A1": {
+      "filename": "mountains.png",
+      "x": 0,
+      "y": 0,
+      "width": 96,
+      "height": 80
+    },
+    "Mountain_A2": {
+      "filename": "mountains.png",
+      "x": 96,
+      "y": 0,
+      "width": 96,
+      "height": 80
+    },
+    "Mountain_B1": {
+      "filename": "mountains.png",
+      "x": 0,
+      "y": 80,
+      "width": 64,
+      "height": 64
+    },
+    "Mountain_B2": {
+      "filename": "mountains.png",
+      "x": 96,
+      "y": 80,
+      "width": 64,
+      "height": 64
+    }
+  }
+  
