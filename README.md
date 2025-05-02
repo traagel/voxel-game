@@ -1,10 +1,13 @@
 # voxel-game
 
-A procedural voxel world map generator and renderer written in Rust using Macroquad.
+A fantasy world colony simulator and procedural world map generator written in Rust using Macroquad.
 
 ## Features
-- Procedural world generation with biomes, elevation, rivers, and civilizations
+- Fantasy world simulation: manage a colony in a procedurally generated world
+- Procedural world generation with biomes, elevation, rivers, civilizations, and cities
 - Biome sprite rendering (PNG assets, see `assets/biome_sprite_map.json`)
+- Colony management: dig, build, and interact with the world
+- Creatures, particles, and local map simulation
 - Civilization and city placement, trade routes
 - Debug logging for world generation steps and timing
 - Multiple map views: Biome, Temperature, Vegetation, Precipitation, Elevation, Civilization
@@ -20,7 +23,9 @@ cargo run --release
 ```
 
 ### Controls
-- Zoom and pan with your mouse or keyboard (see in-game instructions if available)
+- Switch between world map and local map with <Tab>
+- Zoom and pan with your mouse or keyboard
+- Dig and build using mouse buttons in local map mode
 
 ## Assets
 - Biome sprites are mapped in `assets/biome_sprite_map.json` and loaded from the `assets/` directory.
