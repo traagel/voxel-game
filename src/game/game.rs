@@ -409,6 +409,7 @@ impl Game {
         }
 
         // 2) Draw the selected civilization portrait (still in screen space)
+        /*
         if let (Some(civ), Some(portraits)) = (self.gui.selected_civ, self.portraits.as_ref()) {
             if let Some(src_rect) = portraits.get_portrait_rect(civ) {
                 let portrait_size = 96.0;
@@ -427,6 +428,7 @@ impl Game {
                 );
             }
         }
+        */
 
         // 3) Reset to default screen‐space camera before drawing UI
         set_default_camera();
