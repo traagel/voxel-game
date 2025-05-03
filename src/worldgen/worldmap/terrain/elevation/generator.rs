@@ -3,6 +3,7 @@ use crate::worldgen::{
     worldmap::params::WorldGenParams,
 };
 use super::{constants as c, noise_sources::NoiseSources, craters::{random_craters, crater_effect}};
+use rand::Rng;
 
 pub struct Generated {
     pub elevation: Vec<Vec<f64>>,
@@ -21,6 +22,12 @@ pub fn generate(
 
     let noise = NoiseSources::new(seed);
     let craters = random_craters(seed, width, height, c::NUM_CRATERS);
+
+    // --- Valley orientation: random direction per world ---
+    let mut rng = rand::rngs::StdRng::seed_from_u64(seed as u64 + 12345);
+    let valley_angle = rng.gen_range(0.0..std::f64::consts::TAU); // 0..2π
+    let (valley_dx, valley_dy) = (valley_angle.cos(), valley_angle.sin());
+    let valley_scale = 2.0; // Controls valley width/frequency
 
     let mut elevation = vec![vec![0.0; height]; width];
     let mut moisture  = vec![vec![0.0; height]; width];
@@ -72,6 +79,12 @@ pub fn generate(
 
             let crater = crater_effect(x, y, &craters);
 
+            // --- VALLEY MASK (random direction) ------------------------------
+            let valley_nx = nx * valley_dx * valley_scale + ny * valley_dy * valley_scale;
+            let valley_ny = -nx * valley_dy * 0.5 + ny * valley_dx * 0.5; // Perpendicular for variation
+            let valley_noise = noise.ridge.get([valley_nx, valley_ny]);
+            let valley_mask = (1.0 - valley_noise.abs()).powi(2) * 0.25; // Tune power/weight as needed
+
             // --- COMBINE ------------------------------------------------------
             let mut e =
                   continental_mask * c::WEIGHT_CONTINENTAL_MASK
@@ -81,6 +94,9 @@ pub fn generate(
                 + plateau          * c::WEIGHT_PLATEAU
                 + crater
                 + c::BASELINE_SHIFT;
+
+            // Subtract valley mask to carve valleys
+            e -= valley_mask;
 
             // [Lakes are now handled by hydrology::lakes::apply_lakes]
 

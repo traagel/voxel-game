@@ -15,8 +15,8 @@ pub const LAKE_FLATTEN_BLEND:       f64 = 0.25;
 
 pub const BASELINE_SHIFT:           f64 = -0.15;
 
-pub const WEIGHT_CONTINENTAL_MASK:  f64 = 0.5;
-pub const WEIGHT_DETAIL:            f64 = 0.15;
-pub const WEIGHT_RIDGE:             f64 = 1.0;  // scaled later
+pub const WEIGHT_CONTINENTAL_MASK:  f64 = 0.32;
+pub const WEIGHT_DETAIL:            f64 = 0.22;
+pub const WEIGHT_RIDGE:             f64 = 1.25;
 pub const WEIGHT_FALLOFF:           f64 = 0.4;
 pub const WEIGHT_PLATEAU:           f64 = 1.0;  // already toned inside fn

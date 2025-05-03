@@ -20,7 +20,7 @@ pub const PRECIP_MOD:    f64 = 0.60;
 pub const PRECIP_WET:    f64 = 0.85;
 
 // Ridge & elevation offsets
-pub const RIDGE_MOUNTAIN:f64 = 0.30;
+pub const RIDGE_MOUNTAIN:f64 = 0.35;
 pub const RIDGE_HILLS:   f64 = 0.20;
-pub const HILL_OFFSET:   f64 = 0.03;
-pub const PEAK_OFFSET:   f64 = 0.07; 
+pub const HILL_OFFSET:   f64 = 0.02;
+pub const PEAK_OFFSET:   f64 = 0.05; 

@@ -10,8 +10,14 @@ pub fn add_ranges(
     use rand::rngs::StdRng;
     let mut rng = StdRng::seed_from_u64(seed as u64 + 42);
     let num_ranges = 5;
-    let range_width = (width.max(height) as f64 * 0.03).max(2.0) as isize; // width in cells
-    let range_height = 0.25; // how much to boost elevation at the center
+    let base_range_width = 3; // thicker ranges
+    let range_height = 0.18;  // slightly lower for sharper peaks
+    let branch_chance = 0.10; // 10% chance to branch at each step
+    let branch_min_len = 6;
+    let branch_max_len = 16;
+    let branch_width = 2;
+    let branch_height = 0.12;
+    let branch_falloff_exp = 2.0;
 
     // Calculate elevation thresholds for hills and mountains
     let mut flat: Vec<f64> = elevation.iter().flatten().copied().collect();
@@ -69,15 +75,45 @@ pub fn add_ranges(
         };
 
         let path = generate_noisy_line(width, height, start.0, start.1, end.0, end.1, &mut rng);
-        for &(px, py) in &path {
-            for dx in -range_width..=range_width {
-                for dy in -range_width..=range_width {
+        for (i, &(px, py)) in path.iter().enumerate() {
+            let t = i as f64 / path.len().max(1) as f64;
+            // 10% chance to be 2 wide, otherwise base width
+            let local_width = base_range_width + if rng.gen_bool(0.1) { 1 } else { 0 };
+            let local_height = range_height * (0.8 + 0.5 * rng.gen_range(0.0..1.0));
+            for dx in -local_width..=local_width {
+                for dy in -local_width..=local_width {
                     let nx = px + dx;
                     let ny = py + dy;
                     if nx >= 0 && nx < width as isize && ny >= 0 && ny < height as isize {
                         let dist = ((dx * dx + dy * dy) as f64).sqrt();
-                        let falloff = (1.0 - dist / range_width as f64).max(0.0);
-                        elevation[nx as usize][ny as usize] += falloff * range_height;
+                        // Gentler falloff for thicker ridges
+                        let falloff = ((1.0 - dist / local_width as f64).max(0.0)).powf(2.0);
+                        elevation[nx as usize][ny as usize] += falloff * local_height;
+                    }
+                }
+            }
+            // --- Branching ---
+            if rng.gen_bool(branch_chance) {
+                // Pick a random angle (not parallel to main path)
+                let angle = rng.gen_range(0.0..std::f64::consts::TAU);
+                let branch_len = rng.gen_range(branch_min_len..=branch_max_len) as f64;
+                let bx = px + (angle.cos() * branch_len).round() as isize;
+                let by = py + (angle.sin() * branch_len).round() as isize;
+                let branch_path = generate_noisy_line(width, height, px, py, bx, by, &mut rng);
+                for (j, &(bpx, bpy)) in branch_path.iter().enumerate() {
+                    let bt = j as f64 / branch_path.len().max(1) as f64;
+                    let bwidth = branch_width;
+                    let bheight = branch_height * (0.8 + 0.5 * rng.gen_range(0.0..1.0));
+                    for dx in -bwidth..=bwidth {
+                        for dy in -bwidth..=bwidth {
+                            let nx = bpx + dx;
+                            let ny = bpy + dy;
+                            if nx >= 0 && nx < width as isize && ny >= 0 && ny < height as isize {
+                                let dist = ((dx * dx + dy * dy) as f64).sqrt();
+                                let falloff = ((1.0 - dist / bwidth as f64).max(0.0)).powf(branch_falloff_exp);
+                                elevation[nx as usize][ny as usize] += falloff * bheight;
+                            }
+                        }
                     }
                 }
             }
@@ -106,9 +142,11 @@ pub fn generate_noisy_line(
         let t = i as f64 / steps as f64;
         let mut x = x0 as f64 * (1.0 - t) + x1 as f64 * t;
         let mut y = y0 as f64 * (1.0 - t) + y1 as f64 * t;
-        // Add jitter
-        x += rng.gen_range(-1.0..1.0);
-        y += rng.gen_range(-1.0..1.0);
+        // Add more jitter for jaggedness
+        x += rng.gen_range(-2.5..2.5);
+        y += rng.gen_range(-2.5..2.5);
+        // Occasionally skip points for gaps
+        if rng.gen_bool(0.15) { continue; }
         let xi = x.round() as isize;
         let yi = y.round() as isize;
         if xi >= 0 && xi < width as isize && yi >= 0 && yi < height as isize {
