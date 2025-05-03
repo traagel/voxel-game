@@ -27,11 +27,30 @@ pub fn generate_trade_routes(
     let mut flat: Vec<f64> = elevation.iter().flatten().copied().collect();
     flat.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mountain_level = flat[(flat.len() as f64 * 0.90) as usize];
-    // === Inter-civilization (capitals) ===
-    for i in 0..civ_types.len() {
-        for j in (i+1)..civ_types.len() {
-            let civ_a = civ_types[i];
+    // === Inter-civilization (capitals, limited to nearest 3-4 civs) ===
+    let mut inter_civ_pairs = HashSet::new();
+    for (i, &civ_a) in civ_types.iter().enumerate() {
+        let &(ax, ay) = capitals.get(&civ_a).unwrap();
+        // Compute distances to all other civs
+        let mut dists: Vec<(usize, usize, f64)> = civ_types.iter().enumerate()
+            .filter(|&(j, &civ_b)| i != j)
+            .filter_map(|(j, &civ_b)| {
+                capitals.get(&civ_b).map(|&(bx, by)| {
+                    let dx = ax as f64 - bx as f64;
+                    let dy = ay as f64 - by as f64;
+                    (i, j, (dx*dx + dy*dy).sqrt())
+                })
+            })
+            .collect();
+        // Sort by distance and take the 3-4 closest
+        dists.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+        let num_partners = 4.min(dists.len());
+        for &(_, j, _) in dists.iter().take(num_partners) {
             let civ_b = civ_types[j];
+            // Avoid duplicate routes (A-B and B-A)
+            let pair_key = if civ_a < civ_b { (civ_a, civ_b) } else { (civ_b, civ_a) };
+            if inter_civ_pairs.contains(&pair_key) { continue; }
+            inter_civ_pairs.insert(pair_key);
             if let Some(Relation::Peace) = relations.relations.get(&(civ_a, civ_b)) {
                 if let (Some(&(ax, ay)), Some(&(bx, by))) = (capitals.get(&civ_a), capitals.get(&civ_b)) {
                     // Decide route type

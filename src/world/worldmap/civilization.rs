@@ -3,7 +3,7 @@
 use macroquad::prelude::*;
 use crate::world::worldmap::biome::BiomeId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Civilization {
     Human,
     Elf,
