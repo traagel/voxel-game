@@ -13,9 +13,12 @@ use crate::worldgen::localmap::builder::WorldGeneratorBuilder;
 use crate::worldgen::worldmap::WorldMapGenerator;
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
+use macroquad::prelude::{*, screen_width, screen_height};
 use crate::gui::civ_portraits::CivPortraits;
 use macroquad::ui::{hash, root_ui};
 use crate::world::worldmap::civilization::Civilization;
+use crate::gui::MenuState;
+use crate::gui::city_info_window::city_info_window;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderMode {
@@ -36,6 +39,7 @@ pub struct Game {
     previous_mouse_x: f32,
     previous_mouse_y: f32,
     portraits: Option<CivPortraits>,
+    menu: MenuState,
 }
 
 impl Game {
@@ -62,6 +66,7 @@ impl Game {
             previous_mouse_x: 0.0, // Initialize previous mouse position
             previous_mouse_y: 0.0, // Initialize previous mouse position
             portraits,
+            menu: MenuState::new(),
         }
     }
 
@@ -94,6 +99,12 @@ impl Game {
     }
 
     fn handle_input(&mut self) {
+        // ESC key toggles main menu
+        if is_key_pressed(KeyCode::Escape) {
+            self.menu.toggle_main();
+        }
+
+        // Switch between LocalMap and WorldMap
         if is_key_pressed(KeyCode::Tab) {
             self.render_mode = match self.render_mode {
                 RenderMode::WorldMap => RenderMode::LocalMap,
@@ -106,21 +117,56 @@ impl Game {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
 
-                // Center map on ‘C’
-                if is_key_pressed(KeyCode::C) {
-                    let cx = self.world_map.width  as f32 / 2.0;
-                    let cy = self.world_map.height as f32 / 2.0;
-                    let dx = cx - self.world_map_camera.x;
-                    let dy = cy - self.world_map_camera.y;
-                    self.world_map_camera.move_delta(dx, dy);
-                }
-
+                    // Center map on ‘C’
+                    if is_key_pressed(KeyCode::C) {
+                        if let Some(zlevel) = self.world.z_levels.get(0) {
+                            // gather all loaded chunk coordinates
+                            let mut xs: Vec<i32> = zlevel.chunks.keys().map(|(cx, _)| *cx).collect();
+                            let mut ys: Vec<i32> = zlevel.chunks.keys().map(|(_, cy)| *cy).collect();
+                            if !xs.is_empty() {
+                                xs.sort_unstable();
+                                ys.sort_unstable();
+        
+                                // compute world‐unit extents
+                                let min_cx = xs[0]           as f32;
+                                let max_cx = xs[xs.len()-1]  as f32 + 1.0;
+                                let min_cy = ys[0]           as f32;
+                                let max_cy = ys[ys.len()-1]  as f32 + 1.0;
+        
+                                // each chunk is 32 tiles × 8 px per tile
+                                const CHUNK_SIZE: f32 = 32.0;
+                                const TILE_PX:     f32 = 8.0;
+                                let subpx_per_chunk = CHUNK_SIZE * TILE_PX;
+        
+                                // true map center in world‐subpixels
+                                let world_center_x = (min_cx + max_cx) * 0.5 * subpx_per_chunk;
+                                let world_center_y = (min_cy + max_cy) * 0.5 * subpx_per_chunk;
+        
+                                // convert screen half‐width to world units
+                                let zoom = self.local_map_renderer.get_zoom();
+                                let sw   = screen_width();
+                                let sh   = screen_height();
+                                let half_wu_x = (sw * 0.5) / zoom;
+                                let half_wu_y = (sh * 0.5) / zoom;
+        
+                                // desired camera position
+                                let desired_cam_x = world_center_x - half_wu_x;
+                                let desired_cam_y = world_center_y - half_wu_y;
+        
+                                // apply delta
+                                self.local_map_renderer.move_camera_delta(
+                                    desired_cam_x - self.local_map_renderer.get_camera_x(),
+                                    desired_cam_y - self.local_map_renderer.get_camera_y(),
+                                );
+                            }
+                        }
+                    }
+        
                     // WASD pan
                     if is_key_down(KeyCode::W) { self.local_map_renderer.move_camera_delta(0.0, -move_speed); }
                     if is_key_down(KeyCode::S) { self.local_map_renderer.move_camera_delta(0.0,  move_speed); }
                     if is_key_down(KeyCode::A) { self.local_map_renderer.move_camera_delta(-move_speed, 0.0); }
-                    if is_key_down(KeyCode::D) { self.local_map_renderer.move_camera_delta( move_speed, 0.0); }
-            
+                    if is_key_down(KeyCode::D) { self.local_map_renderer.move_camera_delta( move_speed, 0.0); }            
                     // Zoom around cursor
                     let wheel = mouse_wheel().1;
                     if wheel != 0.0 {
@@ -187,21 +233,35 @@ impl Game {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
 
-                // Center map on ‘C’
-                if is_key_pressed(KeyCode::C) {
-                    let cx = self.world_map.width  as f32 / 2.0;
-                    let cy = self.world_map.height as f32 / 2.0;
-                    let dx = cx - self.world_map_camera.x;
-                    let dy = cy - self.world_map_camera.y;
-                    self.world_map_camera.move_delta(dx, dy);
-                }
-
+                    // Center map on ‘C’
+                    if is_key_pressed(KeyCode::C) {
+                        // map dims in tiles
+                        let w = self.world_map.width  as f32;
+                        let h = self.world_map.height as f32;
+                        const TILE_PX: f32 = 8.0;
+                        let zoom = self.world_map_camera.zoom;
+                        // screen size
+                        let sw   = screen_width();
+                        let sh   = screen_height();
+                        // half‐screen in world‐units
+                        let half_wu_x = (sw * 0.5) / (TILE_PX * zoom);
+                        let half_wu_y = (sh * 0.5) / (TILE_PX * zoom);
+                        // desired camera position
+                        let desired_cam_x = w * 0.5 - half_wu_x;
+                        let desired_cam_y = h * 0.5 - half_wu_y;
+        
+                        self.world_map_camera.move_delta(
+                            desired_cam_x - self.world_map_camera.x,
+                            desired_cam_y - self.world_map_camera.y,
+                        );
+                    }
+        
                     // WASD pan
                     if is_key_down(KeyCode::W) { self.world_map_camera.move_delta(0.0, -move_speed); }
                     if is_key_down(KeyCode::S) { self.world_map_camera.move_delta(0.0,  move_speed); }
                     if is_key_down(KeyCode::A) { self.world_map_camera.move_delta(-move_speed, 0.0); }
                     if is_key_down(KeyCode::D) { self.world_map_camera.move_delta( move_speed, 0.0); }
-            
+
                     // Zoom around cursor (account for 8px tiles)
                     let wheel = mouse_wheel().1;
                     if wheel != 0.0 {
@@ -253,6 +313,7 @@ impl Game {
                         self.previous_mouse_x = 0.0;
                         self.previous_mouse_y = 0.0;
                     }
+
             }
         }
     }
@@ -317,32 +378,41 @@ impl Game {
     }
 
     fn render(&mut self) {
+        // 1) Draw either the world map or the local map under its own camera
         match self.render_mode {
             RenderMode::WorldMap => {
                 self.world_map_renderer
-                    .draw_world_map_with_view(&self.world_map, &self.world_map_camera, self.gui.map_view, self.world_map.sea_level);
+                    .draw_world_map_with_view(
+                        &self.world_map,
+                        &self.world_map_camera,
+                        self.gui.map_view,
+                        self.world_map.sea_level,
+                    );
             }
             RenderMode::LocalMap => {
                 let state = GameState {
                     camera_x: self.local_map_renderer.get_camera_x(),
                     camera_y: self.local_map_renderer.get_camera_y(),
-                    zoom: self.local_map_renderer.get_zoom(),
+                    zoom:     self.local_map_renderer.get_zoom(),
                     z_levels: &self.world.z_levels,
                 };
                 self.local_map_renderer.draw(&state);
                 self.draw_creatures();
                 for p in &self.particles {
-                    let sx = (p.x - self.local_map_renderer.get_camera_x()) * self.local_map_renderer.get_zoom();
-                    let sy = (p.y - self.local_map_renderer.get_camera_y()) * self.local_map_renderer.get_zoom();
-                    draw_circle(sx, sy, 0.2 * self.local_map_renderer.get_camera_y(), YELLOW);
+                    let sx = (p.x - self.local_map_renderer.get_camera_x())
+                        * self.local_map_renderer.get_zoom();
+                    let sy = (p.y - self.local_map_renderer.get_camera_y())
+                        * self.local_map_renderer.get_zoom();
+                    draw_circle(sx, sy, 0.2 * self.local_map_renderer.get_zoom(), YELLOW);
                 }
             }
         }
-        // Draw only the selected civilization's portrait at the top middle of the screen
+
+        // 2) Draw the selected civilization portrait (still in screen space)
         if let (Some(civ), Some(portraits)) = (self.gui.selected_civ, self.portraits.as_ref()) {
             if let Some(src_rect) = portraits.get_portrait_rect(civ) {
                 let portrait_size = 96.0;
-                let px = (screen_width() - portrait_size) / 2.0;
+                let px = (screen_width() - portrait_size) * 0.5;
                 let py = 16.0;
                 draw_texture_ex(
                     portraits.get_texture(),
@@ -357,7 +427,26 @@ impl Game {
                 );
             }
         }
+
+        // 3) Reset to default screen‐space camera before drawing UI
+        set_default_camera();
+
+        // 4) Overlay Main Menu
+        self.menu.draw(&mut self.gui);
+
+        // 5) Finally draw city‐info window if active
+        if let (Some(city), Some(portraits)) =
+            (self.gui.selected_city.as_ref(), self.portraits.as_ref())
+        {
+            city_info_window(
+                city,
+                &mut self.gui.show_city_info,
+                portraits,
+                &self.world_map,
+            );
+        }
     }
+
 
     pub async fn run(&mut self) {
         loop {

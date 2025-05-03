@@ -12,6 +12,8 @@ use crate::world::worldmap::civilization::Civilization;
 pub mod city_info_window;
 pub use city_info_window::city_info_window_at;
 pub mod civ_portraits;
+pub mod main_menu;
+pub use main_menu::MenuState;
 
 pub struct GuiState {
     pub show_ui: bool,
