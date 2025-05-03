@@ -65,15 +65,12 @@ pub fn generate(
                 params.persistence,
             );
 
-            // --- RIDGES, PLATEAUS, CRATERS, LAKES -----------------------------
+            // --- RIDGES, PLATEAUS, CRATERS (NO LAKES HERE) -------------------
             let ridge = (1.0 - noise.ridge.get([nx * scale * c::RIDGE_FREQ, ny * scale * c::RIDGE_FREQ]).abs()).powi(3) * 0.7;
 
             let plateau = (noise.plateau.get([nx * scale * c::PLATEAU_FREQ, ny * scale * c::PLATEAU_FREQ]) * 0.5 + 0.5).powf(2.0) * 0.18;
 
             let crater = crater_effect(x, y, &craters);
-
-            let lake_noise = (noise.lake.get([nx * scale * c::LAKE_FREQ, ny * scale * c::LAKE_FREQ]) * 0.5 + 0.5).powf(2.0);
-            let lake_mask  = (1.0 - lake_noise).powf(2.0);
 
             // --- COMBINE ------------------------------------------------------
             let mut e =
@@ -85,8 +82,8 @@ pub fn generate(
                 + crater
                 + c::BASELINE_SHIFT;
 
-            e -= lake_mask * c::LAKE_LOWERING; // carve lake basins
-            e  = e * (1.0 - c::LAKE_FLATTEN_BLEND * lake_mask) + lake_mask * 0.15; // flatten
+            // [Lakes are now handled by hydrology::lakes::apply_lakes]
+
             e  = e.clamp(0.0, 1.0);
 
             elevation[x][y] = e;

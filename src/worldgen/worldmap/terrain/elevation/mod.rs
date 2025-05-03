@@ -1,9 +1,13 @@
-use noise::Perlin;
+use crate::worldgen::worldmap::params::WorldGenParams;
+use crate::worldgen::worldmap::utils::noise::fractal_noise;
 use noise::NoiseFn;
+use noise::Perlin;
 use rand::Rng;
 use rand::SeedableRng;
-use crate::worldgen::worldmap::utils::noise::fractal_noise;
-use crate::worldgen::worldmap::params::WorldGenParams;
+
+pub mod constants;
+pub mod craters;
+pub mod noise_sources;
 
 pub fn generate(
     params: &WorldGenParams,
@@ -13,8 +17,8 @@ pub fn generate(
     seed: u32,
     continent_centers: &Vec<(f64, f64)>,
     continent_radius: f64,
-) -> (Vec<Vec<f64>>, Vec<Vec<f64>>)
-{
+) -> (Vec<Vec<f64>>, Vec<Vec<f64>>) {
+    println!("Starting world generation");
     let p = params;
     let mut elevation = vec![vec![0.0; height]; width];
     let mut moisture = vec![vec![0.0; height]; width];
@@ -26,7 +30,7 @@ pub fn generate(
     let perlin_plateau = Perlin::new(seed.wrapping_add(100));
     let perlin_crater = Perlin::new(seed.wrapping_add(200));
     let perlin_lake = Perlin::new(seed.wrapping_add(300)); // New: lake/plains noise
-    // Generate random craters
+                                                           // Generate random craters
     let mut craters = Vec::new();
     let num_craters = 5;
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed as u64 + 999);
@@ -60,7 +64,8 @@ pub fn generate(
             let jagged = fractal_noise(&perlin_detail, nx * 2.0, ny * 2.0, 2, 0.5);
             // Modulate continent falloff with extra noise for more jagged edges
             let falloff_noise = perlin_detail.get([nx * 3.0, ny * 3.0]);
-            let continent_falloff = ((1.0 - min_dist) + 0.3 * jagged + 0.15 * falloff_noise).clamp(0.0, 1.0);
+            let continent_falloff =
+                ((1.0 - min_dist) + 0.3 * jagged + 0.15 * falloff_noise).clamp(0.0, 1.0);
             let d = fractal_noise(
                 &perlin_detail,
                 nx * scale * p.detail_scale,
@@ -69,7 +74,9 @@ pub fn generate(
                 p.persistence,
             );
             // Plateau noise for mesas and highlands
-            let plateau = (perlin_plateau.get([nx * scale * 0.7, ny * scale * 0.7]) * 0.5 + 0.5).powf(2.0) * 0.18;
+            let plateau = (perlin_plateau.get([nx * scale * 0.7, ny * scale * 0.7]) * 0.5 + 0.5)
+                .powf(2.0)
+                * 0.18;
             // Ridge noise for mountains (stronger influence)
             let r = 1.0 - perlin_ridge.get([nx * scale * 2.0, ny * scale * 2.0]).abs();
             let ridge = (r.powi(3)) * 0.7;
@@ -85,10 +92,17 @@ pub fn generate(
                 }
             }
             // Lake/plains noise: create flat, low-lying areas
-            let lake_noise = (perlin_lake.get([nx * scale * 0.8, ny * scale * 0.8]) * 0.5 + 0.5).powf(2.0);
+            let lake_noise =
+                (perlin_lake.get([nx * scale * 0.8, ny * scale * 0.8]) * 0.5 + 0.5).powf(2.0);
             let lake_mask = (1.0 - lake_noise).powf(2.0); // Stronger effect in low areas
-            // Lower the baseline and reduce some weights
-            let mut e = continental_mask * 0.5 + d * 0.15 + ridge + continent_falloff * 0.4 + plateau + crater_effect - 0.15;
+                                                          // Lower the baseline and reduce some weights
+            let mut e = continental_mask * 0.5
+                + d * 0.15
+                + ridge
+                + continent_falloff * 0.4
+                + plateau
+                + crater_effect
+                - 0.15;
             // Blend in lake/plains effect (subtract elevation, flatten)
             e -= lake_mask * 0.18; // Lower elevation in lake areas
             e = e * (1.0 - 0.25 * lake_mask) + lake_mask * 0.15; // Flatten in lake areas
@@ -106,12 +120,21 @@ pub fn generate(
     for x in 0..width {
         for y in 0..height {
             let e = elevation[x][y];
-            if e < min_elev { min_elev = e; }
-            if e > max_elev { max_elev = e; }
+            if e < min_elev {
+                min_elev = e;
+            }
+            if e > max_elev {
+                max_elev = e;
+            }
             sum_elev += e;
             count += 1.0;
         }
     }
-    println!("Elevation stats: min={:.3}, max={:.3}, mean={:.3}", min_elev, max_elev, sum_elev / count);
+    println!(
+        "Elevation stats: min={:.3}, max={:.3}, mean={:.3}",
+        min_elev,
+        max_elev,
+        sum_elev / count
+    );
     (elevation, moisture)
 }

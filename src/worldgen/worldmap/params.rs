@@ -20,6 +20,8 @@ pub struct WorldGenParams {
     pub persistence: f64,
     /// How many major continents to generate.
     pub num_continents: usize,
+    /// How many craters to generate for worldgen.
+    pub num_craters: usize,
 }
 
 impl Default for WorldGenParams {
@@ -36,6 +38,7 @@ impl Default for WorldGenParams {
             octaves_detail: 8,
             persistence: 1.2,
             num_continents: 3,
+            num_craters: 5,
         }
     }
 }

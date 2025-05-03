@@ -10,6 +10,8 @@ use super::climate::{temperature, precipitation, wind, soil, vegetation};
 use super::hydrology::{flow, rivers};
 use super::civ;
 use super::biome;
+use crate::worldgen::worldmap::terrain::elevation::{craters::random_craters, noise_sources::NoiseSources};
+use crate::worldgen::worldmap::hydrology::lakes;
 
 pub struct WorldMapBuilder {
     pub seed: u32,
@@ -64,6 +66,24 @@ impl WorldMapBuilder {
             erosion_pass(&mut elevation);
         }
 
+        // === Hydrology: Craters, Noise, Flow, Lakes ===
+        let craters = random_craters(self.seed, self.width, self.height, p.num_craters);
+        let noise = NoiseSources::new(self.seed);
+
+        let flow = {
+            let mut flow = vec![vec![0.0; self.width]; self.height];
+            for x in 0..self.width {
+                for y in 0..self.height {
+                    flow::accumulate_flow(&elevation, &mut flow, x, y, 0.0); // sea level will be set below
+                }
+            }
+            flow
+        };
+
+        // Now that we have flow, apply lakes (noise-based and crater-lakes)
+        let river_threshold = p.river_threshold;
+        let lake_mask = lakes::apply_lakes(&mut elevation, &flow, &craters, &noise, river_threshold);
+
         // === Climate ===
         let temperature = temperature::make(&elevation);
         let precipitation = precipitation::make(self.seed, self.width, self.height, self.scale);
@@ -80,16 +100,7 @@ impl WorldMapBuilder {
             (sea, coast, mount)
         };
 
-        // === Hydrology ===
-        let flow = {
-            let mut flow = vec![vec![0.0; self.width]; self.height];
-            for x in 0..self.width {
-                for y in 0..self.height {
-                    flow::accumulate_flow(&elevation, &mut flow, x, y, sea);
-                }
-            }
-            flow
-        };
+        // === Hydrology: River mask (after lakes) ===
         let river_mask = rivers::mask(self, &flow);
 
         // === Biomes ===
@@ -107,6 +118,19 @@ impl WorldMapBuilder {
             coast,
             mountain,
         );
+
+        // === Biome counts print ===
+        use std::collections::HashMap;
+        let mut biome_counts: HashMap<BiomeId, usize> = HashMap::new();
+        for row in &biomes {
+            for &biome in row {
+                *biome_counts.entry(biome).or_insert(0) += 1;
+            }
+        }
+        println!("Biome counts:");
+        for (biome, count) in &biome_counts {
+            println!("  {:?}: {}", biome, count);
+        }
 
         // === Civilisations & trade ===
         let (civ_map, cities, relations, trade) =
