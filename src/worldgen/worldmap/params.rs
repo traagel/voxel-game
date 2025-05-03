@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct WorldGenParams {
     /// Fraction of tiles that should be ocean (0–1).
     pub ocean_percent: f64,
@@ -22,6 +22,8 @@ pub struct WorldGenParams {
     pub num_continents: usize,
     /// How many craters to generate for worldgen.
     pub num_craters: usize,
+    /// How much the ridge map influences elevation (0.0–1.0).
+    pub ridge_weight: f64,
 }
 
 impl Default for WorldGenParams {
@@ -29,9 +31,9 @@ impl Default for WorldGenParams {
         Self {
             ocean_percent: 0.35,
             coast_percent: 0.10,
-            mountain_percent: 0.10,
+            mountain_percent: 0.05,
             erosion_iterations: 30,
-            river_threshold: 120.0,
+            river_threshold: 45.0,
             continent_scale: 0.25,
             detail_scale: 16.0,
             octaves_continent: 6,
@@ -39,6 +41,7 @@ impl Default for WorldGenParams {
             persistence: 1.2,
             num_continents: 3,
             num_craters: 5,
+            ridge_weight: 0.18,
         }
     }
 }

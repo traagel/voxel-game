@@ -1,17 +1,21 @@
+use crate::world::worldmap::biome::{
+    BiomeId, ElevationType, PrecipitationType, TemperatureType, VegetationType,
+};
 use crate::world::worldmap::world_map::WorldMap;
-use crate::world::worldmap::biome::{BiomeId, TemperatureType, VegetationType, PrecipitationType, ElevationType};
 use crate::worldgen::worldmap::biome as biome_classifiers;
 use rand::SeedableRng;
 
-use super::params::WorldGenParams;
-use super::utils::{erosion::erosion_pass, noise::percentile};
-use super::terrain::{continents, elevation, mountains};
-use super::climate::{temperature, precipitation, wind, soil, vegetation};
-use super::hydrology::{flow, rivers};
-use super::civ;
 use super::biome;
-use crate::worldgen::worldmap::terrain::elevation::{craters::random_craters, noise_sources::NoiseSources};
+use super::civ;
+use super::climate::{precipitation, soil, temperature, vegetation, wind};
+use super::hydrology::{flow, rivers};
+use super::params::WorldGenParams;
+use super::terrain::{continents, elevation, mountains};
+use super::utils::{erosion::erosion_pass, noise::percentile};
 use crate::worldgen::worldmap::hydrology::lakes;
+use crate::worldgen::worldmap::terrain::elevation::{
+    craters::random_craters, noise_sources::NoiseSources,
+};
 
 pub struct WorldMapBuilder {
     pub seed: u32,
@@ -40,20 +44,25 @@ impl WorldMapBuilder {
 
     /// Full pipeline – returns a populated `WorldMap`.
     pub fn generate(&self) -> WorldMap {
+        // Settings
+        println!("Generating world with settings:");
+        println!(
+            "  seed: {} width: {} height: {} scale: {}",
+            self.seed, self.width, self.height, self.scale
+        );
+        println!("  params: {:#?}", self.params);
         let p = &self.params;
 
         // === Terrain ===
-        let perlin_seed = self.seed;
         let centers = continents::generate_continent_centers(
-            perlin_seed,
+            self.seed,
             self.width,
             self.height,
             p.num_continents.max(1),
         );
         let continent_radius = (self.width.min(self.height) as f64) * 0.33;
-
         let (mut elevation, mut moisture) = elevation::generate(
-            &self.params,
+            p,
             self.width,
             self.height,
             self.scale,
@@ -66,32 +75,52 @@ impl WorldMapBuilder {
             erosion_pass(&mut elevation);
         }
 
-        // === Hydrology: Craters, Noise, Flow, Lakes ===
+        // === Initial thresholds for flow accumulation ===
+        let mut flat_init: Vec<f64> = elevation.iter().flatten().copied().collect();
+        let sea = percentile(&mut flat_init, p.ocean_percent);
+        let _coast = percentile(&mut flat_init, p.ocean_percent + p.coast_percent);
+        let _mountain = percentile(&mut flat_init, 1.0 - p.mountain_percent);
+
+        // === Hydrology: Craters & Noise ===
         let craters = random_craters(self.seed, self.width, self.height, p.num_craters);
         let noise = NoiseSources::new(self.seed);
 
-        let flow = {
-            let mut flow = vec![vec![0.0; self.width]; self.height];
-            for x in 0..self.width {
-                for y in 0..self.height {
-                    flow::accumulate_flow(&elevation, &mut flow, x, y, 0.0); // sea level will be set below
+        // === Flow accumulation using computed sea level ===
+        let mut flow = vec![vec![0.0; self.height]; self.width];
+        for x in 0..self.width {
+            for y in 0..self.height {
+                flow::accumulate_flow(&elevation, &mut flow, x, y, sea);
+            }
+        }
+
+        // === Lakes carve elevation ===
+        // let lake_mask =
+        //     lakes::apply_lakes(&mut elevation, &flow, &craters, &noise, p.river_threshold, sea, _coast, 4, 4, 5);
+        let lake_mask = vec![vec![false; self.height]; self.width];
+
+        // === Elevation contrast stretch ===
+        let mut min_e = f64::INFINITY;
+        let mut max_e = f64::NEG_INFINITY;
+        for col in &elevation {
+            for &v in col {
+                if v < min_e {
+                    min_e = v;
+                }
+                if v > max_e {
+                    max_e = v;
                 }
             }
-            flow
-        };
+        }
+        let range = max_e - min_e;
+        if range > 0.0 {
+            for x in 0..self.width {
+                for y in 0..self.height {
+                    elevation[x][y] = (elevation[x][y] - min_e) / range;
+                }
+            }
+        }
 
-        // Now that we have flow, apply lakes (noise-based and crater-lakes)
-        let river_threshold = p.river_threshold;
-        let lake_mask = lakes::apply_lakes(&mut elevation, &flow, &craters, &noise, river_threshold);
-
-        // === Climate ===
-        let temperature = temperature::make(&elevation);
-        let precipitation = precipitation::make(self.seed, self.width, self.height, self.scale, &elevation);
-        let wind = wind::make(self.seed, self.width, self.height, self.scale);
-        let soil = soil::make(&elevation, &precipitation, &vec![vec![false; self.height]; self.width]);
-        let vegetation = vegetation::make(&temperature, &precipitation, &soil);
-
-        // === Thresholds ===
+        // === Final thresholds for biomes and map generation ===
         let (sea, coast, mountain) = {
             let mut flat: Vec<f64> = elevation.iter().flatten().copied().collect();
             let sea = percentile(&mut flat, p.ocean_percent);
@@ -100,15 +129,33 @@ impl WorldMapBuilder {
             (sea, coast, mount)
         };
 
-        // === Hydrology: River mask (after lakes) ===
+        // === Climate ===
+        let temperature = temperature::make(&elevation);
+        let precipitation =
+            precipitation::make(self.seed, self.width, self.height, self.scale, &elevation);
+        let wind = wind::make(self.seed, self.width, self.height, self.scale);
+        let soil = soil::make(
+            &elevation,
+            &precipitation,
+            &vec![vec![false; self.height]; self.width],
+        );
+        let vegetation = vegetation::make(&temperature, &precipitation, &soil);
+
+        // === Hydrology: River mask ===
         let river_mask = rivers::mask(self, &flow);
 
         // === Biomes ===
-        let ridge = crate::worldgen::worldmap::terrain::elevation::ridge_map(self.seed, self.width, self.height, self.scale);
+        let ridge = crate::worldgen::worldmap::terrain::elevation::ridge_map(
+            self.seed,
+            self.width,
+            self.height,
+            self.scale,
+        );
         let biomes = biome::classify_world(
             &elevation,
             &moisture,
             &river_mask,
+            &lake_mask,
             &temperature,
             &precipitation,
             &soil,
@@ -120,63 +167,78 @@ impl WorldMapBuilder {
         );
 
         // === Biome counts print ===
-        use std::collections::HashMap;
-        let mut biome_counts: HashMap<BiomeId, usize> = HashMap::new();
-        for row in &biomes {
-            for &biome in row {
-                *biome_counts.entry(biome).or_insert(0) += 1;
-            }
-        }
         println!("Biome counts:");
-        for (biome, count) in &biome_counts {
-            println!("  {:?}: {}", biome, count);
+        {
+            use std::collections::HashMap;
+            let mut counts = HashMap::new();
+            for row in &biomes {
+                for &b in row {
+                    *counts.entry(b).or_insert(0) += 1;
+                }
+            }
+            for (b, c) in counts {
+                println!("  {:?}: {}", b, c);
+            }
         }
 
         // === Civilisations & trade ===
         let (civ_map, cities, relations, trade) =
             civ::generate_all(self, &elevation, sea, &biomes, &river_mask);
 
-        // === Category maps (for renderer) ===
-        let temperature_map: Vec<Vec<TemperatureType>> = (0..self.width)
-            .map(|x| (0..self.height)
-                .map(|y| biome_classifiers::temperature(temperature[x][y]))
-                .collect())
+        // === Category maps ===
+        let temperature_map = (0..self.width)
+            .map(|x| {
+                (0..self.height)
+                    .map(|y| biome_classifiers::temperature(temperature[x][y]))
+                    .collect()
+            })
+            .collect();
+        let vegetation_map = (0..self.width)
+            .map(|x| {
+                (0..self.height)
+                    .map(|y| {
+                        biome_classifiers::vegetation(
+                            vegetation[x][y],
+                            temperature[x][y],
+                            precipitation[x][y],
+                        )
+                    })
+                    .collect()
+            })
+            .collect();
+        let precipitation_map = (0..self.width)
+            .map(|x| {
+                (0..self.height)
+                    .map(|y| biome_classifiers::precipitation(precipitation[x][y]))
+                    .collect()
+            })
+            .collect();
+        let elevation_map = (0..self.width)
+            .map(|x| {
+                (0..self.height)
+                    .map(|y| {
+                        biome_classifiers::elevation(
+                            elevation[x][y],
+                            &biome_classifiers::models::TileEnv {
+                                elev: elevation[x][y],
+                                sea,
+                                coast,
+                                mountain,
+                                ridge: 0.0,
+                                moisture: 0.0,
+                                temp: 0.0,
+                                precip: 0.0,
+                                soil: 0.0,
+                                veg: 0.0,
+                                river_here: false,
+                                lake_here: false,
+                            },
+                        )
+                    })
+                    .collect()
+            })
             .collect();
 
-        let vegetation_map: Vec<Vec<VegetationType>> = (0..self.width)
-            .map(|x| (0..self.height)
-                .map(|y| biome_classifiers::vegetation(vegetation[x][y], temperature[x][y], precipitation[x][y]))
-                .collect())
-            .collect();
-
-        let precipitation_map: Vec<Vec<PrecipitationType>> = (0..self.width)
-            .map(|x| (0..self.height)
-                .map(|y| biome_classifiers::precipitation(precipitation[x][y]))
-                .collect())
-            .collect();
-
-        let elevation_map: Vec<Vec<ElevationType>> = (0..self.width)
-            .map(|x| (0..self.height)
-                .map(|y| biome_classifiers::elevation(
-                    elevation[x][y],
-                    &biome_classifiers::models::TileEnv {
-                        elev: elevation[x][y],
-                        sea,
-                        coast,
-                        mountain,
-                        ridge: 0.0,
-                        moisture: 0.0,
-                        temp: 0.0,
-                        precip: 0.0,
-                        soil: 0.0,
-                        veg: 0.0,
-                        river_here: false,
-                    }
-                ))
-                .collect())
-            .collect();
-
-        // === Assemble ===
         WorldMap {
             width: self.width,
             height: self.height,
@@ -189,7 +251,7 @@ impl WorldMapBuilder {
             soil_fertility: soil,
             vegetation,
             wind_direction: wind,
-            resources: vec![vec![None; self.height]; self.width], // stub; move to its own module later
+            resources: vec![vec![None; self.height]; self.width],
             temperature_map,
             vegetation_map,
             precipitation_map,
@@ -203,5 +265,5 @@ impl WorldMapBuilder {
     }
 }
 
-// Preserve old type name so call‑sites don't break.
+// Preserve old type name
 pub use WorldMapBuilder as WorldMapGenerator;

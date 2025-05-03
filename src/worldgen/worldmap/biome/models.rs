@@ -1,9 +1,3 @@
-use crate::world::worldmap::biome::{BiomeId, TemperatureType,
-                                    VegetationType, PrecipitationType,
-                                    ElevationType};
-
-/// All the scalar inputs needed to classify a single tile.
-/// Reduces the monster function signature to one parameter.
 #[derive(Copy, Clone)]
 pub struct TileEnv {
     pub elev: f64,
@@ -17,4 +11,6 @@ pub struct TileEnv {
     pub coast: f64,
     pub mountain: f64,
     pub river_here: bool,
-} 
+    pub lake_here: bool,
+}
+

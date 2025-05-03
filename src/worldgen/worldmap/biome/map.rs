@@ -1,18 +1,21 @@
 use super::{classifiers::biome, models::TileEnv};
 use crate::world::worldmap::biome::BiomeId;
 
+/// Classify each tile into a biome, including lake detection via `lake` mask.
 pub fn classify_world(
     elevation: &[Vec<f64>],
     moisture: &[Vec<f64>],
-    river:     &[Vec<bool>],
-    temp:      &[Vec<f64>],
-    precip:    &[Vec<f64>],
-    soil:      &[Vec<f64>],
-    veg:       &[Vec<f64>],
-    ridge:     &[Vec<f64>],
-    sea: f64, coast: f64, mountain: f64,
+    river: &[Vec<bool>],
+    lake: &[Vec<bool>],
+    temp: &[Vec<f64>],
+    precip: &[Vec<f64>],
+    soil: &[Vec<f64>],
+    veg: &[Vec<f64>],
+    ridge: &[Vec<f64>],
+    sea: f64,
+    coast: f64,
+    mountain: f64,
 ) -> Vec<Vec<BiomeId>> {
-
     let (w, h) = (elevation.len(), elevation[0].len());
     let mut out = vec![vec![BiomeId::Plains; h]; w];
 
@@ -26,11 +29,15 @@ pub fn classify_world(
                 precip: precip[x][y],
                 soil: soil[x][y],
                 veg: veg[x][y],
-                sea, coast, mountain,
+                sea,
+                coast,
+                mountain,
                 river_here: river[x][y],
+                lake_here: lake[x][y],
             };
             out[x][y] = biome(&env);
         }
     }
     out
-} 
+}
+
