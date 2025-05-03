@@ -86,7 +86,7 @@ impl WorldMapBuilder {
 
         // === Climate ===
         let temperature = temperature::make(&elevation);
-        let precipitation = precipitation::make(self.seed, self.width, self.height, self.scale);
+        let precipitation = precipitation::make(self.seed, self.width, self.height, self.scale, &elevation);
         let wind = wind::make(self.seed, self.width, self.height, self.scale);
         let soil = soil::make(&elevation, &precipitation, &vec![vec![false; self.height]; self.width]);
         let vegetation = vegetation::make(&temperature, &precipitation, &soil);
