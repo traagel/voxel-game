@@ -20,9 +20,6 @@ impl MenuState {
     /// Toggle the main‐menu on/off
     pub fn toggle_main(&mut self) {
         self.show_main = !self.show_main;
-        if menu_opened_this_frame {
-            root_ui().remove_window(hash!("main_menu", old_sw, old_sh));
-        }
     }
 
     /// Draw the main menu (and settings window) when toggled on
