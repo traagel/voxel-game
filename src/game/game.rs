@@ -105,7 +105,16 @@ impl Game {
                 RenderMode::LocalMap => {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
-            
+
+                // Center map on ‘C’
+                if is_key_pressed(KeyCode::C) {
+                    let cx = self.world_map.width  as f32 / 2.0;
+                    let cy = self.world_map.height as f32 / 2.0;
+                    let dx = cx - self.world_map_camera.x;
+                    let dy = cy - self.world_map_camera.y;
+                    self.world_map_camera.move_delta(dx, dy);
+                }
+
                     // WASD pan
                     if is_key_down(KeyCode::W) { self.local_map_renderer.move_camera_delta(0.0, -move_speed); }
                     if is_key_down(KeyCode::S) { self.local_map_renderer.move_camera_delta(0.0,  move_speed); }
@@ -177,7 +186,16 @@ impl Game {
                 RenderMode::WorldMap => {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
-            
+
+                // Center map on ‘C’
+                if is_key_pressed(KeyCode::C) {
+                    let cx = self.world_map.width  as f32 / 2.0;
+                    let cy = self.world_map.height as f32 / 2.0;
+                    let dx = cx - self.world_map_camera.x;
+                    let dy = cy - self.world_map_camera.y;
+                    self.world_map_camera.move_delta(dx, dy);
+                }
+
                     // WASD pan
                     if is_key_down(KeyCode::W) { self.world_map_camera.move_delta(0.0, -move_speed); }
                     if is_key_down(KeyCode::S) { self.world_map_camera.move_delta(0.0,  move_speed); }
