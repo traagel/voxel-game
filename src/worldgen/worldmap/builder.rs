@@ -1,6 +1,6 @@
 use crate::world::worldmap::world_map::WorldMap;
 use crate::world::worldmap::biome::{BiomeId, TemperatureType, VegetationType, PrecipitationType, ElevationType};
-use crate::worldgen::worldmap::biome::{classify_temperature, classify_vegetation, classify_precipitation, classify_elevation};
+use crate::worldgen::worldmap::biome as biome_classifiers;
 use rand::SeedableRng;
 
 use super::params::WorldGenParams;
@@ -94,8 +94,7 @@ impl WorldMapBuilder {
 
         // === Biomes ===
         let ridge = crate::worldgen::worldmap::terrain::ridge_map(self.seed, self.width, self.height, self.scale);
-        let biomes = biome::all(
-            self,
+        let biomes = biome::classify_world(
             &elevation,
             &moisture,
             &river_mask,
@@ -116,25 +115,40 @@ impl WorldMapBuilder {
         // === Category maps (for renderer) ===
         let temperature_map: Vec<Vec<TemperatureType>> = (0..self.width)
             .map(|x| (0..self.height)
-                .map(|y| classify_temperature(temperature[x][y]))
+                .map(|y| biome_classifiers::temperature(temperature[x][y]))
                 .collect())
             .collect();
 
         let vegetation_map: Vec<Vec<VegetationType>> = (0..self.width)
             .map(|x| (0..self.height)
-                .map(|y| classify_vegetation(vegetation[x][y], temperature[x][y], precipitation[x][y]))
+                .map(|y| biome_classifiers::vegetation(vegetation[x][y], temperature[x][y], precipitation[x][y]))
                 .collect())
             .collect();
 
         let precipitation_map: Vec<Vec<PrecipitationType>> = (0..self.width)
             .map(|x| (0..self.height)
-                .map(|y| classify_precipitation(precipitation[x][y]))
+                .map(|y| biome_classifiers::precipitation(precipitation[x][y]))
                 .collect())
             .collect();
 
         let elevation_map: Vec<Vec<ElevationType>> = (0..self.width)
             .map(|x| (0..self.height)
-                .map(|y| classify_elevation(elevation[x][y], sea, coast, mountain))
+                .map(|y| biome_classifiers::elevation(
+                    elevation[x][y],
+                    &biome_classifiers::models::TileEnv {
+                        elev: elevation[x][y],
+                        sea,
+                        coast,
+                        mountain,
+                        ridge: 0.0,
+                        moisture: 0.0,
+                        temp: 0.0,
+                        precip: 0.0,
+                        soil: 0.0,
+                        veg: 0.0,
+                        river_here: false,
+                    }
+                ))
                 .collect())
             .collect();
 
