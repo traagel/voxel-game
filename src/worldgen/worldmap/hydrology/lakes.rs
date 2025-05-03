@@ -10,23 +10,100 @@ pub fn apply_lakes(
     craters: &[Crater],
     noise: &NoiseSources,
     river_threshold: f64,
+    sea: f64,
+    coast: f64,
+    max_lake_width: usize,
+    max_lake_height: usize,
+    max_lake_count: usize,
 ) -> Vec<Vec<bool>> {
     let width = elevation.len();
     let height = if width > 0 { elevation[0].len() } else { 0 };
     let mut lake_mask = vec![vec![false; height]; width];
+    let mut visited = vec![vec![false; height]; width];
+    let mut lake_count = 0;
 
-    // 1. Noise-based lakes
+    // Helper to check if any neighbor is ocean
+    fn touches_ocean(x: usize, y: usize, elevation: &[Vec<f64>], sea: f64) -> bool {
+        let width = elevation.len();
+        let height = elevation[0].len();
+        for dx in -1i32..=1 {
+            for dy in -1i32..=1 {
+                if dx == 0 && dy == 0 { continue; }
+                let nx = x as i32 + dx;
+                let ny = y as i32 + dy;
+                if nx >= 0 && nx < width as i32 && ny >= 0 && ny < height as i32 {
+                    if elevation[nx as usize][ny as usize] <= sea {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    // 1. Noise-based lakes with region growing and limits
     for x in 0..width {
         for y in 0..height {
+            if visited[x][y] || lake_count >= max_lake_count {
+                continue;
+            }
             let nx = x as f64 / width as f64 - 0.5;
             let ny = y as f64 / height as f64 - 0.5;
             let lake_noise = (noise.lake.get([nx * c::LAKE_FREQ, ny * c::LAKE_FREQ]) * 0.5 + 0.5).powf(2.0);
             let mask = (1.0 - lake_noise).powf(2.0);
-            // threshold 0.3 chosen experimentally
-            if mask > 0.3 {
-                lake_mask[x][y] = true;
-                elevation[x][y] -= mask * c::LAKE_LOWERING;
-                elevation[x][y] = elevation[x][y] * (1.0 - c::LAKE_FLATTEN_BLEND * mask) + mask * 0.15;
+            if mask > 0.3 && elevation[x][y] > sea && elevation[x][y] > coast && !touches_ocean(x, y, elevation, sea) {
+                // Start a new lake region using BFS
+                let mut queue = std::collections::VecDeque::new();
+                let mut region = vec![];
+                let mut min_x = x;
+                let mut max_x = x;
+                let mut min_y = y;
+                let mut max_y = y;
+                queue.push_back((x, y));
+                visited[x][y] = true;
+                while let Some((cx, cy)) = queue.pop_front() {
+                    region.push((cx, cy));
+                    min_x = min_x.min(cx);
+                    max_x = max_x.max(cx);
+                    min_y = min_y.min(cy);
+                    max_y = max_y.max(cy);
+                    // Enforce width/height limits
+                    if max_x - min_x + 1 > max_lake_width || max_y - min_y + 1 > max_lake_height {
+                        continue;
+                    }
+                    for dx in -1i32..=1 {
+                        for dy in -1i32..=1 {
+                            if dx == 0 && dy == 0 { continue; }
+                            let nx = cx as i32 + dx;
+                            let ny = cy as i32 + dy;
+                            if nx >= 0 && nx < width as i32 && ny >= 0 && ny < height as i32 {
+                                let nx = nx as usize;
+                                let ny = ny as usize;
+                                if !visited[nx][ny] {
+                                    let n_lake_noise = (noise.lake.get([
+                                        nx as f64 / width as f64 - 0.5 * c::LAKE_FREQ,
+                                        ny as f64 / height as f64 - 0.5 * c::LAKE_FREQ,
+                                    ]) * 0.5 + 0.5).powf(2.0);
+                                    let n_mask = (1.0 - n_lake_noise).powf(2.0);
+                                    if n_mask > 0.3 && elevation[nx][ny] > sea && elevation[nx][ny] > coast && !touches_ocean(nx, ny, elevation, sea) {
+                                        queue.push_back((nx, ny));
+                                        visited[nx][ny] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // If region is within limits, mark as lake
+                if max_x - min_x + 1 <= max_lake_width && max_y - min_y + 1 <= max_lake_height {
+                    for &(lx, ly) in &region {
+                        lake_mask[lx][ly] = true;
+                        let region_mask = (1.0 - lake_noise).powf(2.0); // Use original mask for all
+                        elevation[lx][ly] -= region_mask * c::LAKE_LOWERING;
+                        elevation[lx][ly] = elevation[lx][ly] * (1.0 - c::LAKE_FLATTEN_BLEND * region_mask) + region_mask * 0.15;
+                    }
+                    lake_count += 1;
+                }
             }
         }
     }

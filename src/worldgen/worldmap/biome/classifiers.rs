@@ -57,7 +57,7 @@ pub fn elevation(e: f64, env: &TileEnv) -> ElevationType {
 
 /// Lake decision kept separate for clarity.
 pub fn is_lake(env: &TileEnv) -> bool {
-    env.elev > env.sea && env.elev < env.coast - 0.01 && env.moisture > 0.6
+    env.lake_here
 }
 
 /// The big biome matcher. Exactly same decision tree, just tidied.
