@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct WorldGenParams {
     /// Fraction of tiles that should be ocean (0–1).
     pub ocean_percent: f64,
