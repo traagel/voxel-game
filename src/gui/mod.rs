@@ -2,7 +2,7 @@ use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui};
 use crate::world::localmap::world::World;
 use crate::world::localmap::terrain_material::TerrainMaterial;
-use crate::worldgen::worldmap::generator::WorldGenParams;
+use crate::worldgen::worldmap::params::WorldGenParams;
 use crate::game::game::RenderMode;
 use crate::world::worldmap::world_map::WorldMap;
 use crate::renderer::camera::Camera;
@@ -131,6 +131,7 @@ impl GuiState {
                     ui.label(None, &format!("Seed: {}", self.worldgen_seed));
                     if ui.button(None, "Randomize Seed") {
                         self.worldgen_seed = macroquad::rand::rand();
+                        self.regenerate_requested = true;
                     }
                     ui.separator();
                     // --- Map size controls ---
