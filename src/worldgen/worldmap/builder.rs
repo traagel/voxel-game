@@ -104,7 +104,7 @@ impl WorldMapBuilder {
         let river_mask = rivers::mask(self, &flow);
 
         // === Biomes ===
-        let ridge = crate::worldgen::worldmap::terrain::ridge_map(self.seed, self.width, self.height, self.scale);
+        let ridge = crate::worldgen::worldmap::terrain::elevation::ridge_map(self.seed, self.width, self.height, self.scale);
         let biomes = biome::classify_world(
             &elevation,
             &moisture,
