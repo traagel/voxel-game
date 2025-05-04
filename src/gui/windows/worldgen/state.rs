@@ -1,4 +1,5 @@
 use crate::worldgen::worldmap::params::WorldGenParams;
+use crate::gui::windows::window_state::WindowState;
 
 #[derive(Clone, Default)]
 pub struct WorldGenSettings {
@@ -26,6 +27,7 @@ pub struct WorldGenWindowState {
     pub width: usize,
     pub height: usize,
     pub regenerate_requested: bool,
+    pub show: bool,
 }
 
 impl WorldGenWindowState {
@@ -36,6 +38,7 @@ impl WorldGenWindowState {
             width: 128,
             height: 128,
             regenerate_requested: false,
+            show: false,
         }
     }
     
@@ -47,4 +50,11 @@ impl WorldGenWindowState {
             height: self.height,
         }
     }
+}
+
+impl WindowState for WorldGenWindowState {
+    fn is_visible(&self) -> bool { self.show }
+    fn show(&mut self) { self.show = true; }
+    fn hide(&mut self) { self.show = false; }
+    fn toggle(&mut self) { self.show = !self.show; }
 } 

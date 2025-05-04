@@ -15,6 +15,10 @@ impl MainMenuState {
 
     /// Draw the main menu (and settings window) when toggled on
     pub fn draw(&mut self) {
+        // Draw a debug indicator to show this method was called
+        draw_rectangle(200.0, 10.0, 200.0, 30.0, Color::new(0.2, 0.7, 0.3, 0.7));
+        draw_text("MainMenu.draw() called", 210.0, 30.0, 16.0, WHITE);
+        
         if self.show_main {
             let win_size = vec2(400.0, 300.0);
             let sw = screen_width() as i32;
@@ -33,8 +37,21 @@ impl MainMenuState {
                 if ui.button(None, "Settings") {
                     self.show_settings = true;
                 }
+                
+                // Add some debug info
+                ui.separator();
+                ui.label(None, "Debug Info");
+                ui.label(None, &format!("Screen: {}x{}", sw, sh));
+                ui.label(None, &format!("show_main: {}", self.show_main));
+                ui.label(None, &format!("show_settings: {}", self.show_settings));
+                
+                // Test button to make sure UI is responding
+                if ui.button(None, "DEBUG: Test Button") {
+                    println!("Test button clicked!");
+                }
             });
         }
+        
         if self.show_settings {
             let win_size = vec2(300.0, 200.0);
             let sw = screen_width() as i32;

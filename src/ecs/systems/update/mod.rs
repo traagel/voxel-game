@@ -3,6 +3,8 @@
 
 pub mod creatures;
 pub mod particles;
+pub mod window_interactions;
 
 pub use creatures::*;
-pub use particles::*; 
+pub use particles::*;
+pub use window_interactions::*; 

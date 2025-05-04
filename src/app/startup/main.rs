@@ -7,12 +7,18 @@ use crate::ecs::{
         world_map::WorldMapRes, 
         world::WorldRes,
         gui_state::GuiStateRes, 
-        window_manager::WindowManagerRes,
-        game_view::GameViewRes,
-        game_view::GameView,
+        window_manager::{
+            WindowManagerRes,
+            CityInfoStateRes,
+            MainMenuStateRes,
+            WorldGenWindowStateRes,
+            WorkerInfoStateRes,
+        },
+        game_view::{GameViewRes, GameView},
         particle::ParticlesRes,
     },
 };
+use crate::gui::windows::window_state::WindowState;
 
 pub async fn init(world: &mut World) {
     // ── Insert renderers as resources ──
@@ -35,10 +41,33 @@ pub async fn init(world: &mut World) {
     let world_map = worldgen.generate();
     world.insert_resource(WorldMapRes(world_map));
     
-    // Insert other resources
-    world.insert_resource(GuiStateRes::default());
+    // Insert GUI resources
+    let mut gui_state = crate::gui::GuiState::new();
+    gui_state.show_ui = true; // Make sure GUI is visible by default
+    world.insert_resource(GuiStateRes(gui_state));
+    
     world.insert_resource(WindowManagerRes(crate::gui::windows::window_manager::WindowManager::new()));
-    world.insert_resource(GameViewRes::default());
+    
+    // Insert individual window state resources
+    world.insert_resource(CityInfoStateRes::default());
+    
+    // Set up main menu
+    let mut main_menu = crate::gui::windows::main_menu::MainMenuState::new();
+    main_menu.show(); // Make main menu visible by default
+    world.insert_resource(MainMenuStateRes(main_menu));
+    
+    // Set up worldgen window
+    let mut worldgen_state = crate::gui::windows::worldgen::WorldGenWindowState::new();
+    worldgen_state.show(); // Make worldgen window visible by default
+    world.insert_resource(WorldGenWindowStateRes(worldgen_state));
+    
+    world.insert_resource(WorkerInfoStateRes::default());
+    
+    // Set default game view to WorldMap instead of MainMenu
+    world.insert_resource(GameViewRes {
+        active_view: GameView::WorldMap, // Start with WorldMap view for testing
+    });
+    
     world.insert_resource(ParticlesRes::default());
     
     // Load portraits if needed

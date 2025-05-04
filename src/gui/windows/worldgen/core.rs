@@ -3,6 +3,15 @@ use macroquad::ui::{hash, root_ui};
 use crate::gui::windows::worldgen::state::WorldGenWindowState;
 
 pub fn draw_worldgen_window(state: &mut WorldGenWindowState) {
+    // Debug visualization to show this function is being called
+    draw_rectangle(420.0, 10.0, 200.0, 30.0, Color::new(0.7, 0.2, 0.3, 0.7));
+    draw_text(&format!("WorldGen.draw() show={}", state.show), 430.0, 30.0, 16.0, WHITE);
+    
+    // Return early if the window shouldn't be shown
+    if !state.show {
+        return;
+    }
+    
     let win_pos = vec2(300.0, 20.0);
     let win_size = vec2(320.0, 500.0);
 
@@ -81,6 +90,10 @@ pub fn draw_worldgen_window(state: &mut WorldGenWindowState) {
         state.params.num_continents = num_continents.clamp(1.0, 8.0) as usize;
         if ui.button(None, "Regenerate World Map") {
             state.regenerate_requested = true;
+        }
+        // Add a close button
+        if ui.button(None, "Close") {
+            state.show = false;
         }
     });
 } 

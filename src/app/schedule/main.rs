@@ -1,7 +1,8 @@
 use bevy_ecs::prelude::*;
-use crate::ecs::systems::render::{draw_world_map, draw_local_map, draw_gui};
+use crate::ecs::systems::render::{draw_world_map, draw_local_map};
 use crate::ecs::systems::input::handle_camera_input;
 use crate::ecs::systems::update::{update_creatures, update_particles};
+use crate::ecs::systems::register_gui_systems;
 
 // Define the stages as system labels
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
@@ -39,21 +40,22 @@ pub fn build_schedule() -> Schedule {
     
     // Add input systems
     schedule.add_systems(
-        (handle_camera_input,)
-            .in_set(Stage::Input)
+        handle_camera_input.in_set(Stage::Input)
     );
     
     // Add update systems
     schedule.add_systems(
-        (update_creatures, update_particles)
-            .in_set(Stage::Update)
+        (update_creatures, update_particles).in_set(Stage::Update)
     );
     
     // Add render systems
     schedule.add_systems(
-        (draw_world_map, draw_local_map, draw_gui)
-            .in_set(Stage::Render)
+        (draw_world_map, draw_local_map).in_set(Stage::Render)
     );
+    
+    // Register GUI systems (using our convenience function)
+    // This will add GUI input, update, and render systems to their respective sets
+    register_gui_systems(&mut schedule);
     
     schedule
 } 
