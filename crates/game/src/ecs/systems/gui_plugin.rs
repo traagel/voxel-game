@@ -4,9 +4,9 @@ use crate::app::App;
 use crate::app::schedule::Stage;
 use crate::ecs::resources::window_manager::*;
 use crate::ecs::resources::gui_state::GuiStateRes;
-use crate::ecs::systems::input::{handle_gui_input, handle_world_interactions};
-use crate::ecs::systems::render::draw_gui;
-use crate::ecs::systems::update::update_window_interactions;
+use crate::ecs::systems::input::{handle_gui_input, handle_world_interactions, handle_gui_system_input};
+use crate::ecs::systems::render::gui::gui_system;
+use crate::ecs::systems::update::{update_window_interactions, update_gui_system};
 
 // Define a custom plugin trait since we're not using the full Bevy engine
 pub trait Plugin {
@@ -16,7 +16,7 @@ pub trait Plugin {
 pub struct GuiPlugin;
 
 impl Plugin for GuiPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(&self, _app: &mut App) {
         // This function can't be directly implemented since our App struct doesn't have these methods.
         // Instead, we need to modify our approach.
         
@@ -44,16 +44,23 @@ pub fn register_gui_systems(schedule: &mut Schedule) {
     
     // Add GUI systems to the schedule
     schedule.add_systems(
-        (handle_gui_input, handle_world_interactions).in_set(Stage::Input)
+        (
+            handle_gui_input, 
+            handle_world_interactions,
+            handle_gui_system_input // Add our new GUI system input handler
+        ).in_set(Stage::Input)
     );
-    schedule.add_systems(update_window_interactions.in_set(Stage::Update));
     
-    // Configure draw_gui to run after all other rendering systems using an explicit ordering constraint
-    // This ensures the world rendering happens first, then GUI is drawn on top
+    // Add GUI update systems
     schedule.add_systems(
-        draw_gui
-            .in_set(Stage::Render)
-            .after(crate::ecs::systems::render::draw_world_map)
-            .after(crate::ecs::systems::render::draw_local_map)
+        (
+            update_window_interactions,
+            update_gui_system // Add our new GUI system update handler
+        ).in_set(Stage::Update)
     );
+    
+    // Add rendering systems
+    // Note: We're using the synchronous gui_system instead of the async draw_gui
+    // This avoids the problem with into_system() on async functions
+    schedule.add_systems(gui_system.in_set(Stage::Render));
 } 

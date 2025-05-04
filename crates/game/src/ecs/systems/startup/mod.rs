@@ -1,2 +1,5 @@
 pub mod assets;
-pub use assets::*; 
+pub mod gui_system;
+
+pub use assets::*;
+pub use gui_system::*; 

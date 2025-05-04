@@ -13,7 +13,7 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        let mut world = World::default();
+        let world = World::default();
         let schedule = schedule::build_schedule();
         Self { world, schedule }
     }

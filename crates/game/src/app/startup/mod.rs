@@ -7,7 +7,7 @@ pub use main::*;
 use bevy_ecs::prelude::*;
 
 // Synchronous parts of initialization
-pub fn init(world: &mut World) {
+pub fn init(_world: &mut World) {
     // This is the default startup system registered with the schedule
     // It's called once when the app starts
 }

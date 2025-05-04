@@ -23,15 +23,15 @@ use super::{
 };
 
 /// Main GUI drawing function that orchestrates the rendering of all GUI elements
-pub fn draw_gui(
-    gui_state: Res<GuiStateRes>,
-    mut game_view: ResMut<GameViewRes>,
-    mut city_info: ResMut<CityInfoStateRes>,
-    mut main_menu: ResMut<MainMenuStateRes>,
-    mut worldgen: ResMut<WorldGenWindowStateRes>,
-    mut worker_info: ResMut<WorkerInfoStateRes>,
-    world_map: Res<WorldMapRes>,
-    portraits: Option<Res<CivPortraitsRes>>,
+pub async fn draw_gui(
+    gui_state: Res<'_, GuiStateRes>,
+    mut game_view: ResMut<'_, GameViewRes>,
+    mut city_info: ResMut<'_, CityInfoStateRes>,
+    mut main_menu: ResMut<'_, MainMenuStateRes>,
+    mut worldgen: ResMut<'_, WorldGenWindowStateRes>,
+    mut worker_info: ResMut<'_, WorkerInfoStateRes>,
+    world_map: Res<'_, WorldMapRes>,
+    portraits: Option<Res<'_, CivPortraitsRes>>,
 ) {
     // Save camera state by pushing a new camera stack context
     push_camera_state();
@@ -54,7 +54,9 @@ pub fn draw_gui(
 
     // Draw the main menu if it's visible or we're in MainMenu view
     if main_menu.is_visible() || matches!(game_view.active_view, GameView::MainMenu) {
-        draw_main_menu(&mut main_menu);
+        if let Err(err) = draw_main_menu(&mut main_menu).await {
+            eprintln!("Error drawing main menu: {}", err);
+        }
     }
     
     // Normal game view-dependent GUI
@@ -112,7 +114,5 @@ pub fn draw_gui(
     
     // Display camera state message after restoration
     let after_pos = vec2(10.0, screen_height() - 30.0);
-    draw_rectangle(after_pos.x, after_pos.y, 400.0, 25.0, Color::new(0.1, 0.1, 0.1, 0.7));
-    draw_text(&format!("Camera restored, GameView: {:?}", game_view.active_view), 
-        after_pos.x + 5.0, after_pos.y + 20.0, 13.0, YELLOW);
+    draw_text(&format!("Camera Restored"), after_pos.x, after_pos.y, 14.0, DARKGRAY);
 } 

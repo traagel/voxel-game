@@ -1,0 +1,16 @@
+{
+    "tiles": {
+        "top_left": {"x": 0, "y": 0},
+        "top": {"x": 1, "y": 0},
+        "top_right": {"x": 2, "y": 0},
+        "left": {"x": 0, "y": 1},
+        "center": {"x": 1, "y": 1},
+        "right": {"x": 2, "y": 1},
+        "bottom_left": {"x": 0, "y": 2},
+        "bottom": {"x": 1, "y": 2},
+        "bottom_right": {"x": 2, "y": 2}
+    },
+    "tile_size": {"width": 3, "height": 3},
+    "map_size": {"columns": 3, "rows": 3},
+    "image": "window_3x3.png"
+}
