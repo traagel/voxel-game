@@ -3,11 +3,9 @@ mod player;
 mod renderer;
 mod world;
 mod worldgen;
-mod gui;
 mod particle;
 mod input;
 mod ecs;
-
 mod app;  // holds App struct that owns World & Schedule
 
 #[macroquad::main("Voxel Engine")]
