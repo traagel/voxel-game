@@ -1,6 +1,7 @@
 use crate::world::localmap::world::World;
 use crate::game::game::RenderMode;
 
+#[derive(Default)]
 pub struct GuiState {
     pub show_ui: bool,
     pub paused: bool,

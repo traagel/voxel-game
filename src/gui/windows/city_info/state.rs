@@ -2,6 +2,7 @@ use crate::gui::windows::window_state::WindowState;
 use crate::world::worldmap::city::City;
 use crate::world::worldmap::civilization::Civilization;
 
+#[derive(Default)]
 pub struct CityInfoState {
     pub show: bool,
     pub selected_city: Option<City>,

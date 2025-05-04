@@ -3,6 +3,7 @@ use crate::world::localmap::terrain_material::TerrainMaterial;
 use crate::world::localmap::zlevel::ZLevel;
 use std::collections::HashMap;
 
+#[derive(Default)]
 pub struct World {
     pub z_levels: Vec<ZLevel>,
     pub block_counts: HashMap<TerrainMaterial, usize>,

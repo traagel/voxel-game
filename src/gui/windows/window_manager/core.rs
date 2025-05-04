@@ -7,6 +7,7 @@ use crate::gui::GuiState;
 use crate::game::game::RenderMode;
 use crate::gui::windows::window_state::WindowState;
 
+#[derive(Default)]
 pub struct WindowManager {
     pub main_menu: MainMenuState,
     pub city_info: CityInfoState,

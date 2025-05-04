@@ -1,5 +1,6 @@
 use crate::gui::windows::window_state::WindowState;
 
+#[derive(Default)]
 pub struct MainMenuState {
     pub show_main: bool,
     pub show_settings: bool,

@@ -1,3 +1,4 @@
+#[derive(Default)]
 pub struct WorkerInfoState {
     pub show: bool,
     pub selected_worker: Option<usize>, // Placeholder for worker ID or struct

@@ -1,7 +1,7 @@
 //! City struct for world generation
 use super::civilization::Civilization;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct City {
     pub name: String,
     pub civ: Civilization,
