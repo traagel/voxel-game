@@ -6,4 +6,4 @@ pub mod gui;
 
 pub use world_map::*;
 pub use local_map::*;
-pub use gui::*;
+pub use gui::draw_gui;

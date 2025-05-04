@@ -30,9 +30,6 @@ pub fn handle_gui_input(
         },
         GameView::WorldMap => {
             // World map specific GUI input
-            if is_key_pressed(KeyCode::W) {
-                worldgen.toggle();
-            }
             if is_key_pressed(KeyCode::C) {
                 city_info.toggle();
             }

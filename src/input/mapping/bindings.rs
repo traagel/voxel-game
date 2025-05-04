@@ -20,19 +20,28 @@ pub fn map_keyboard_event(event: &KeyboardEvent) -> Option<Action> {
 
 pub fn map_mouse_event(event: &MouseEvent) -> Option<Action> {
     match event.button {
-        MouseButton::Left if event.pressed => Some(Action::PaintTile { x: event.x as i32, y: event.y as i32 }),
+        MouseButton::Left if event.pressed => {
+            // Determine the appropriate action based on the context
+            // For now, let's default to CityClick since that's what we're fixing
+            Some(Action::CityClick { x: event.x, y: event.y })
+            
+            // Later, this could be context-aware:
+            // if game_view is WorldMap -> CityClick
+            // if game_view is LocalMap -> PaintTile
+            // etc.
+        },
         MouseButton::Right if event.pressed => Some(Action::DigTile { x: event.x as i32, y: event.y as i32 }),
         MouseButton::Wheel if event.pressed && event.wheel_delta != 0.0 => Some(Action::Zoom { delta: event.wheel_delta, x: event.x, y: event.y }),
         MouseButton::Middle if event.pressed => {
             // Start drag
             unsafe { PREV_DRAG_POS = Some((event.x, event.y)); }
             Some(Action::StartDrag { x: event.x, y: event.y })
-        }
+        },
         MouseButton::Middle if !event.pressed => {
             // End drag
             unsafe { PREV_DRAG_POS = None; }
             Some(Action::EndDrag)
-        }
+        },
         // Drag (continuous)
         MouseButton::Middle => {
             unsafe {
@@ -46,9 +55,7 @@ pub fn map_mouse_event(event: &MouseEvent) -> Option<Action> {
                 }
             }
             None
-        }
-        // City click (for WorldMap, context-aware mapping can be added later)
-        MouseButton::Left if event.pressed => Some(Action::CityClick { x: event.x, y: event.y }),
+        },
         _ => None,
     }
 } 

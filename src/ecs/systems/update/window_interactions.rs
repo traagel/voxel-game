@@ -9,18 +9,34 @@ use crate::ecs::resources::{
     game_view::{GameViewRes, GameView},
     world_map::WorldMapRes,
 };
+use crate::worldgen::worldmap::builder::WorldMapBuilder;
 
 /// System to handle interactions between windows and game state updates
 pub fn update_window_interactions(
     mut city_info: ResMut<CityInfoStateRes>,
     mut worldgen: ResMut<WorldGenWindowStateRes>,
     game_view: Res<GameViewRes>,
-    world_map: Res<WorldMapRes>,
+    mut world_map: ResMut<WorldMapRes>,
 ) {
     // Handle world generation requests
     if worldgen.regenerate_requested {
-        // Here we would trigger the world regeneration
-        // This could involve sending an event or updating a flag in a resource
+        // Create a new WorldMapBuilder with settings from worldgen
+        let builder = WorldMapBuilder::new(
+            worldgen.seed,
+            worldgen.width,
+            worldgen.height,
+            0.02, // Hardcoded scale for now - could be added to WorldGenWindowStateRes if needed
+            Some(worldgen.params.clone()),
+        );
+        
+        // Generate a new world map
+        println!("Regenerating world map with new settings from UI");
+        let new_world_map = builder.generate();
+        
+        // Update the world map resource
+        world_map.0 = new_world_map;
+        
+        // Reset the flag
         worldgen.regenerate_requested = false;
     }
     

@@ -4,7 +4,7 @@ use crate::app::App;
 use crate::app::schedule::Stage;
 use crate::ecs::resources::window_manager::*;
 use crate::ecs::resources::gui_state::GuiStateRes;
-use crate::ecs::systems::input::handle_gui_input;
+use crate::ecs::systems::input::{handle_gui_input, handle_world_interactions};
 use crate::ecs::systems::render::draw_gui;
 use crate::ecs::systems::update::update_window_interactions;
 
@@ -43,7 +43,9 @@ pub fn register_gui_systems(schedule: &mut Schedule) {
     // Resources were already added in startup/main.rs
     
     // Add GUI systems to the schedule
-    schedule.add_systems(handle_gui_input.in_set(Stage::Input));
+    schedule.add_systems(
+        (handle_gui_input, handle_world_interactions).in_set(Stage::Input)
+    );
     schedule.add_systems(update_window_interactions.in_set(Stage::Update));
     
     // Configure draw_gui to run after all other rendering systems using an explicit ordering constraint
