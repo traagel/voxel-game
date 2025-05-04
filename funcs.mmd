@@ -1,207 +1,1280 @@
 flowchart LR
   subgraph src::creatures::ai
-    n17["fn is_walkable(mat: TerrainMaterial) -> bool"]
-    n18["fn find_nearest_dig_target(&mut self, world: &World)"]
-    n19["fn move_toward_target(&mut self, world: &World)"]
+    n27["fn is_walkable(mat: TerrainMaterial) -> bool"]
+    n28["fn find_nearest_dig_target(&mut self, world: &World)"]
+    n29["fn move_toward_target(&mut self, world: &World)"]
   end
   subgraph src::creatures::creature
-    n21["fn new(x: f32, y: f32, size: f32, color: Color) -> Self"]
+    n31["fn new(x: f32, y: f32, size: f32, color: Color) -> Self"]
   end
   subgraph src::creatures::digging
-    n20["fn dig_if_close(&mut self, world: &mut World, particles: &mut Vec<Particle>)"]
+    n30["fn dig_if_close(&mut self, world: &mut World, particles: &mut Vec<Particle>)"]
   end
   subgraph src::creatures::draw
-    n16["fn draw(&self, camera_x: f32, camera_y: f32, zoom: f32)"]
+    n26["fn draw(&self, camera_x: f32, camera_y: f32, zoom: f32)"]
   end
   subgraph src::game::game
-    n22["fn new() -> Self"]
-    n23["fn init(&mut self)"]
-    n24["fn handle_input(&mut self)"]
-    n25["fn update_creatures(&mut self)"]
-    n26["fn draw_creatures(&self)"]
-    n27["fn update(&mut self)"]
-    n28["fn render(&mut self)"]
-    n29["fn run(&mut self)"]
+    n32["fn new() -> Self"]
+    n33["fn init(&mut self)"]
+    n34["fn handle_input(&mut self)"]
+    n35["fn update_creatures(&mut self)"]
+    n36["fn draw_creatures(&self)"]
+    n37["fn update(&mut self)"]
+    n38["fn render(&mut self)"]
+    n39["fn run(&mut self)"]
   end
-  subgraph src::gui
-    n40["fn new() -> Self"]
-    n41["fn update(&mut self)"]
+  subgraph src::gui::city_info_window
+    n43["fn city_info_window(city: &City, show: &mut bool, portraits: &CivPortraits, world_map: &WorldMap)"]
+    n44["fn city_info_window_at(city: &City, show: &mut bool, portraits: &CivPortraits, win_pos: Vec2, win_size: Vec2, world_map: &WorldMap)"]
+  end
+  subgraph src::gui::civ_portraits
+    n48["fn load() -> Self"]
+    n49["fn get_portrait_rect(&self, civ: Civilization) -> Option<Rect>"]
+    n50["fn get_texture(&self) -> &Texture2D"]
+  end
+  subgraph src::gui::gui_state
+    n51["fn new() -> Self"]
+    n52["fn update(&mut self, world: &World, render_mode: RenderMode, world_map: Option<&crate::world::worldmap::world_map::WorldMap>, world_map_camera: Option<&crate::renderer::camera::Camera>, portraits: Option<&crate::gui::civ_portraits::CivPortraits>)"]
+  end
+  subgraph src::gui::main_menu
+    n45["fn new() -> Self"]
+    n46["fn toggle_main(&mut self)"]
+    n47["fn draw(&mut self, gui: &mut GuiState)"]
+  end
+  subgraph src::gui::widgets::tile_ui
+    n53["fn draw_tile_panel_stub()"]
+  end
+  subgraph src::gui::windows::city_info
+    n60["fn city_info_window_stub()"]
+  end
+  subgraph src::gui::windows::city_info::core
+    n69["fn city_info_window(city: &City, show: &mut bool, portraits: &CivPortraits, world_map: &WorldMap)"]
+    n70["fn city_info_window_at(city: &City, show: &mut bool, portraits: &CivPortraits, win_pos: Vec2, win_size: Vec2, world_map: &WorldMap)"]
+  end
+  subgraph src::gui::windows::city_info::portraits
+    n61["fn load() -> Self"]
+    n62["fn get_portrait_rect(&self, civ: Civilization) -> Option<Rect>"]
+    n63["fn get_texture(&self) -> &Texture2D"]
+  end
+  subgraph src::gui::windows::city_info::state
+    n64["fn new() -> Self"]
+    n65["fn is_visible(&self) -> bool"]
+    n66["fn show(&mut self)"]
+    n67["fn hide(&mut self)"]
+    n68["fn toggle(&mut self)"]
+  end
+  subgraph src::gui::windows::main_menu::state
+    n55["fn new() -> Self"]
+    n56["fn is_visible(&self) -> bool"]
+    n57["fn show(&mut self)"]
+    n58["fn hide(&mut self)"]
+    n59["fn toggle(&mut self)"]
+  end
+  subgraph src::gui::windows::window_manager::core
+    n54["fn new() -> Self"]
   end
   subgraph src::main
     n0["fn main()"]
   end
   subgraph src::player::actions
-    n37["fn paint_dig_target(world: &mut World, x: i32, y: i32)"]
-    n38["fn count_dig_jobs(world: &World) -> usize"]
-    n39["fn paint_rock(world: &mut World, x: i32, y: i32)"]
+    n40["fn paint_dig_target(world: &mut World, x: i32, y: i32)"]
+    n41["fn count_dig_jobs(world: &World) -> usize"]
+    n42["fn paint_rock(world: &mut World, x: i32, y: i32)"]
   end
-  subgraph src::renderer::renderer
-    n1["fn default() -> Self"]
-    n2["fn move_camera_delta(&mut self, dx: f32, dy: f32)"]
-    n3["fn set_zoom(&mut self, zoom: f32)"]
-    n4["fn get_zoom(&self) -> f32"]
-    n5["fn delta_zoom(&mut self, zoom: f32)"]
-    n6["fn get_camera_x(&self) -> f32"]
-    n7["fn get_camera_y(&self) -> f32"]
-    n8["fn draw(&self, state: &GameState)"]
+  subgraph src::renderer::camera
+    n1["fn new(x: f32, y: f32, zoom: f32) -> Self"]
+    n2["fn default() -> Self"]
+    n3["fn move_delta(&mut self, dx: f32, dy: f32)"]
+    n4["fn set_zoom(&mut self, zoom: f32)"]
+    n5["fn get_zoom(&self) -> f32"]
+    n6["fn delta_zoom(&mut self, zoom: f32)"]
+    n7["fn get_x(&self) -> f32"]
+    n8["fn get_y(&self) -> f32"]
   end
-  subgraph src::world::chunk
-    n10["fn new() -> Self"]
+  subgraph src::renderer::draw::draw_biome
+    n141["fn draw_biome_tile(biome_sprite_map: &HashMap<String, SpriteInfo>,
+    biome_textures: &HashMap<String, Texture2D>,
+    world_map: &WorldMap,
+    x: usize,
+    y: usize,
+    sx: f32,
+    sy: f32,
+    draw_size: f32,
+    camera: &Camera,
+    offset: f32,)"]
   end
-  subgraph src::world::subpixel
-    n15["fn default() -> Self"]
+  subgraph src::renderer::draw::draw_biome_with_civ_overlay
+    n136["fn draw_biome_with_civ_overlay_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
   end
-  subgraph src::world::tile
-    n9["fn default() -> Self"]
+  subgraph src::renderer::draw::draw_civilization
+    n135["fn draw_civilization_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
   end
-  subgraph src::world::world
-    n12["fn new() -> Self"]
-    n13["fn get_material_at(&self, x: i32, y: i32) -> TerrainMaterial"]
-    n14["fn set_material_at(&mut self, x: i32, y: i32, material: TerrainMaterial)"]
+  subgraph src::renderer::draw::draw_elevation
+    n133["fn elevation_gradient_color(level: usize) -> Color"]
+    n134["fn draw_elevation_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
   end
-  subgraph src::world::zlevel
-    n11["fn new(z: i32) -> Self"]
+  subgraph src::renderer::draw::draw_mountain
+    n128["fn frame(sprite: &SpriteInfo, col: f32, row: f32) -> Rect"]
+    n129["fn screen(x: isize, y: isize, cam: &Camera, draw: f32, off: f32) -> Vec2"]
+    n130["fn draw_mountain_tile(sprites: &HashMap<String, SpriteInfo>,
+    texs:   &HashMap<String, Texture2D>,
+    map:    &WorldMap,
+    x: usize,
+    y: usize,
+    cam:  &Camera,
+    draw: f32,
+    off:  f32,) -> bool"]
+    n131["fn draw_snow_mountain_tile(sprites: &HashMap<String, SpriteInfo>,
+    texs:   &HashMap<String, Texture2D>,
+    map:    &WorldMap,
+    x: usize,
+    y: usize,
+    cam:  &Camera,
+    draw: f32,
+    off:  f32,) -> bool"]
   end
-  subgraph src::worldgen::builder
-    n30["fn new(seed: u32) -> Self"]
-    n31["fn with_scale(mut self, scale: f64) -> Self"]
-    n32["fn with_height_noise(self, _noise: OpenSimplex) -> Self"]
-    n33["fn build(self) -> WorldGenerator"]
+  subgraph src::renderer::draw::draw_precipitation
+    n137["fn draw_precipitation_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
   end
-  subgraph src::worldgen::generator
-    n34["fn new(seed: u32) -> Self"]
-    n35["fn generate_chunk(&self, chunk_x: i32, chunk_y: i32) -> Chunk"]
-    n36["fn from_stages(stages: Vec<Box<dyn GenStage>>) -> Self"]
+  subgraph src::renderer::draw::draw_sprite
+    n139["fn draw_sprite_tile(sprite: &SpriteInfo, tex: &Texture2D, sx: f32, sy: f32, draw_size: f32)"]
   end
-  subgraph src::worldgen::stages::height
-    n42["fn new(seed: u32, scale: f64) -> Self"]
-    n43["fn execute(&self, ctx: &mut GenCtx)"]
+  subgraph src::renderer::draw::draw_temperature
+    n138["fn draw_temperature_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
   end
-  n0 --> n10
-  n0 --> n11
-  n0 --> n12
-  n0 --> n21
-  n0 --> n22
+  subgraph src::renderer::draw::draw_trade_routes
+    n140["fn draw_trade_routes(world_map: &WorldMap, camera: &Camera, cell_size: f32, sea_level: f64)"]
+  end
+  subgraph src::renderer::draw::draw_vegetation
+    n132["fn draw_vegetation_tile(world_map: &WorldMap, x: usize, y: usize, sx: f32, sy: f32, draw_size: f32)"]
+  end
+  subgraph src::renderer::grid
+    n9["fn draw_grid(camera_x: f32,
+    camera_y: f32,
+    zoom: f32,
+    screen_width_px: f32,
+    screen_height_px: f32,
+    tile_size: i32,)"]
+  end
+  subgraph src::renderer::local_map_renderer
+    n13["fn default() -> Self"]
+    n14["fn move_camera_delta(&mut self, dx: f32, dy: f32)"]
+    n15["fn set_zoom(&mut self, zoom: f32)"]
+    n16["fn get_zoom(&self) -> f32"]
+    n17["fn delta_zoom(&mut self, zoom: f32)"]
+    n18["fn get_camera_x(&self) -> f32"]
+    n19["fn get_camera_y(&self) -> f32"]
+    n20["fn draw(&self, state: &GameState)"]
+    n21["fn draw_chunk(&self,
+        chunk_x: &i32,
+        chunk_y: &i32,
+        chunk: &crate::world::localmap::chunk::Chunk,
+        chunk_pixel_size: i32,
+        tile_size: i32,
+        world_left: i32,
+        world_right: i32,
+        world_top: i32,
+        world_bottom: i32,
+        camera_x: f32,
+        camera_y: f32,
+        zoom: f32,)"]
+    n22["fn draw_tile_in_chunk(&self,
+        tile: &crate::world::localmap::tile::Tile,
+        chunk_pixel_x: i32,
+        chunk_pixel_y: i32,
+        tile_x: usize,
+        tile_y: usize,
+        tile_size: i32,
+        world_left: i32,
+        world_right: i32,
+        world_top: i32,
+        world_bottom: i32,
+        camera_x: f32,
+        camera_y: f32,
+        zoom: f32,)"]
+  end
+  subgraph src::renderer::tile_render
+    n10["fn default() -> Self"]
+    n11["fn draw_tile(&self,
+        tile: &crate::world::localmap::tile::Tile,
+        world_x: i32,
+        world_y: i32,
+        camera_x: f32,
+        camera_y: f32,
+        zoom: f32,
+        tile_size: i32,
+        world_left: i32,
+        world_right: i32,
+        world_top: i32,
+        world_bottom: i32,)"]
+    n12["fn is_mixed_material(tile: &crate::world::localmap::tile::Tile) -> bool"]
+  end
+  subgraph src::renderer::world_map_renderer
+    n23["fn new() -> Self"]
+    n24["fn draw_world_map(&self, world_map: &WorldMap, camera: &Camera)"]
+    n25["fn draw_world_map_with_view(&self, world_map: &WorldMap, camera: &Camera, view: MapView, sea_level: f64)"]
+  end
+  subgraph src::world::localmap::chunk
+    n122["fn new() -> Self"]
+  end
+  subgraph src::world::localmap::subpixel
+    n127["fn default() -> Self"]
+  end
+  subgraph src::world::localmap::tile
+    n121["fn default() -> Self"]
+  end
+  subgraph src::world::localmap::world
+    n124["fn new() -> Self"]
+    n125["fn get_material_at(&self, x: i32, y: i32) -> TerrainMaterial"]
+    n126["fn set_material_at(&mut self, x: i32, y: i32, material: TerrainMaterial)"]
+  end
+  subgraph src::world::localmap::zlevel
+    n123["fn new(z: i32) -> Self"]
+  end
+  subgraph src::world::worldmap::biome
+    n116["fn color(&self) -> Color"]
+    n117["fn color(&self) -> Color"]
+    n118["fn color(&self) -> Color"]
+    n119["fn color(&self) -> Color"]
+    n120["fn color(&self) -> Color"]
+  end
+  subgraph src::world::worldmap::civilization
+    n115["fn color(&self) -> Color"]
+  end
+  subgraph src::worldgen::localmap::builder
+    n74["fn new(seed: u32) -> Self"]
+    n75["fn with_scale(mut self, scale: f64) -> Self"]
+    n76["fn with_height_noise(self, _noise: OpenSimplex) -> Self"]
+    n77["fn build(self) -> WorldGenerator"]
+  end
+  subgraph src::worldgen::localmap::generator
+    n78["fn new(seed: u32) -> Self"]
+    n79["fn generate_chunk(&self, chunk_x: i32, chunk_y: i32) -> Chunk"]
+    n80["fn from_stages(stages: Vec<Box<dyn GenStage>>) -> Self"]
+  end
+  subgraph src::worldgen::localmap::stages::height
+    n83["fn new(seed: u32, scale: f64) -> Self"]
+    n84["fn execute(&self, ctx: &mut GenCtx)"]
+  end
+  subgraph src::worldgen::localmap::stages::material
+    n81["fn new(seed: u32, scale: f64, dirt_height: f32) -> Self"]
+    n82["fn execute(&self, ctx: &mut GenCtx)"]
+  end
+  subgraph src::worldgen::worldmap::biome::classifiers
+    n86["fn temperature(t: f64) -> TemperatureType"]
+    n87["fn vegetation(v: f64, temp: f64, precip: f64) -> VegetationType"]
+    n88["fn precipitation(p: f64) -> PrecipitationType"]
+    n89["fn elevation(e: f64, env: &TileEnv) -> ElevationType"]
+    n90["fn is_lake(env: &TileEnv) -> bool"]
+    n91["fn biome(env: &TileEnv) -> BiomeId"]
+  end
+  subgraph src::worldgen::worldmap::biome::map
+    n85["fn classify_world(elevation: &[Vec<f64>],
+    moisture: &[Vec<f64>],
+    river: &[Vec<bool>],
+    lake: &[Vec<bool>],
+    temp: &[Vec<f64>],
+    precip: &[Vec<f64>],
+    soil: &[Vec<f64>],
+    veg: &[Vec<f64>],
+    ridge: &[Vec<f64>],
+    sea: f64,
+    coast: f64,
+    mountain: f64,) -> Vec<Vec<BiomeId>>"]
+  end
+  subgraph src::worldgen::worldmap::builder
+    n71["fn new(seed: u32,
+        width: usize,
+        height: usize,
+        scale: f64,
+        params: Option<WorldGenParams>,) -> Self"]
+    n72["fn generate(&self) -> WorldMap"]
+  end
+  subgraph src::worldgen::worldmap::civ::roads
+    n111["fn cmp(&self, other: &Self) -> Ordering"]
+    n112["fn partial_cmp(&self, other: &Self) -> Option<Ordering>"]
+    n113["fn eq(&self, other: &Self) -> bool"]
+    n114["fn is_coast(elevation: &Vec<Vec<f64>>, sea_level: f64, x: usize, y: usize) -> bool"]
+  end
+  subgraph src::worldgen::worldmap::climate::precipitation
+    n107["fn make(seed: u32,
+    width: usize,
+    height: usize,
+    scale: f64,
+    elevation: &Vec<Vec<f64>>, // new parameter!) -> Vec<Vec<f64>>"]
+  end
+  subgraph src::worldgen::worldmap::climate::soil
+    n105["fn make(elevation: &Vec<Vec<f64>>,
+    precipitation: &Vec<Vec<f64>>,
+    rivers: &Vec<Vec<bool>>,) -> Vec<Vec<f64>>"]
+  end
+  subgraph src::worldgen::worldmap::climate::temperature
+    n106["fn make(elevation: &Vec<Vec<f64>>) -> Vec<Vec<f64>>"]
+  end
+  subgraph src::worldgen::worldmap::climate::vegetation
+    n108["fn make(temperature: &Vec<Vec<f64>>,
+    precipitation: &Vec<Vec<f64>>,
+    soil_fertility: &Vec<Vec<f64>>,) -> Vec<Vec<f64>>"]
+  end
+  subgraph src::worldgen::worldmap::hydrology::flow
+    n110["fn accumulate_flow(elev: &[Vec<f64>],
+    flow: &mut [Vec<f64>],
+    x: usize,
+    y: usize,
+    sea_level: f64,)"]
+  end
+  subgraph src::worldgen::worldmap::hydrology::lakes
+    n95["fn apply_lakes(elevation: &mut [Vec<f64>],
+    flow: &[Vec<f64>],
+    craters: &[Crater],
+    noise: &NoiseSources,
+    river_threshold: f64,
+    sea: f64,
+    coast: f64,
+    max_lake_width: usize,
+    max_lake_height: usize,
+    max_lake_count: usize,) -> Vec<Vec<bool>>"]
+    n96["fn touches_ocean(x: usize, y: usize, elevation: &[Vec<f64>], sea: f64) -> bool"]
+  end
+  subgraph src::worldgen::worldmap::hydrology::rivers
+    n109["fn mask(builder: &WorldMapBuilder,
+    flow: &Vec<Vec<f64>>,) -> Vec<Vec<bool>>"]
+  end
+  subgraph src::worldgen::worldmap::params
+    n73["fn default() -> Self"]
+  end
+  subgraph src::worldgen::worldmap::terrain::elevation::craters
+    n98["fn random_craters(seed: u32, width: usize, height: usize, how_many: usize) -> Vec<Crater>"]
+    n99["fn crater_effect(cx: usize, cy: usize, craters: &[Crater]) -> f64"]
+  end
+  subgraph src::worldgen::worldmap::terrain::elevation::generator
+    n100["fn create_noise_sources(seed: u32) -> NoiseSet"]
+    n101["fn combine_elevation(continent: f64,
+    detail: f64,
+    ridge: f64,
+    plateau: f64,
+    lake: f64,
+    crater: f64,) -> f64"]
+    n102["fn print_elevation_stats(elevation: &[Vec<f64>])"]
+  end
+  subgraph src::worldgen::worldmap::terrain::elevation::noise_sources
+    n103["fn new(seed: u32) -> Self"]
+  end
+  subgraph src::worldgen::worldmap::terrain::elevation::ridge
+    n97["fn ridge_map(seed: u32, width: usize, height: usize, scale: f64) -> Vec<Vec<f64>>"]
+  end
+  subgraph src::worldgen::worldmap::terrain::mountains
+    n104["fn add_ranges(seed: u32,
+    width: usize,
+    height: usize,
+    elevation: &mut Vec<Vec<f64>>,)"]
+  end
+  subgraph src::worldgen::worldmap::utils::erosion
+    n92["fn erosion_pass(elev: &mut [Vec<f64>])"]
+  end
+  subgraph src::worldgen::worldmap::utils::noise
+    n93["fn fractal_noise(perlin: &Perlin,
+    x: f64,
+    y: f64,
+    octaves: usize,
+    persistence: f64,) -> f64"]
+    n94["fn percentile(values: &mut [f64], p: f64) -> f64"]
+  end
+  n0 --> n1
+  n0 --> n103
+  n0 --> n122
+  n0 --> n123
+  n0 --> n124
   n0 --> n23
-  n0 --> n29
-  n0 --> n30
-  n0 --> n34
-  n0 --> n40
-  n0 --> n42
-  n10 --> n1
-  n10 --> n15
-  n10 --> n9
-  n11 --> n10
+  n0 --> n31
+  n0 --> n32
+  n0 --> n33
+  n0 --> n39
+  n0 --> n45
+  n0 --> n51
+  n0 --> n54
+  n0 --> n55
+  n0 --> n64
+  n0 --> n71
+  n0 --> n74
+  n0 --> n78
+  n0 --> n81
+  n0 --> n83
+  n100 --> n1
+  n100 --> n103
+  n100 --> n122
+  n100 --> n123
+  n100 --> n124
+  n100 --> n23
+  n100 --> n31
+  n100 --> n32
+  n100 --> n45
+  n100 --> n51
+  n100 --> n54
+  n100 --> n55
+  n100 --> n64
+  n100 --> n71
+  n100 --> n74
+  n100 --> n78
+  n100 --> n81
+  n100 --> n83
+  n103 --> n1
+  n103 --> n122
+  n103 --> n123
+  n103 --> n124
+  n103 --> n23
+  n103 --> n31
+  n103 --> n32
+  n103 --> n45
+  n103 --> n51
+  n103 --> n54
+  n103 --> n55
+  n103 --> n64
+  n103 --> n71
+  n103 --> n74
+  n103 --> n78
+  n103 --> n81
+  n103 --> n83
+  n104 --> n1
+  n104 --> n103
+  n104 --> n112
+  n104 --> n122
+  n104 --> n123
+  n104 --> n124
+  n104 --> n23
+  n104 --> n31
+  n104 --> n32
+  n104 --> n45
+  n104 --> n51
+  n104 --> n54
+  n104 --> n55
+  n104 --> n64
+  n104 --> n71
+  n104 --> n74
+  n104 --> n78
+  n104 --> n81
+  n104 --> n83
+  n107 --> n1
+  n107 --> n103
+  n107 --> n122
+  n107 --> n123
+  n107 --> n124
+  n107 --> n23
+  n107 --> n31
+  n107 --> n32
+  n107 --> n45
+  n107 --> n51
+  n107 --> n54
+  n107 --> n55
+  n107 --> n64
+  n107 --> n71
+  n107 --> n74
+  n107 --> n78
+  n107 --> n81
+  n107 --> n83
+  n11 --> n1
+  n11 --> n103
   n11 --> n12
-  n11 --> n21
-  n11 --> n22
-  n11 --> n30
-  n11 --> n34
-  n11 --> n40
-  n11 --> n42
-  n12 --> n10
-  n12 --> n11
-  n12 --> n21
-  n12 --> n22
-  n12 --> n30
-  n12 --> n34
-  n12 --> n40
-  n12 --> n42
-  n19 --> n13
-  n19 --> n17
-  n22 --> n1
-  n22 --> n10
+  n11 --> n122
+  n11 --> n123
+  n11 --> n124
+  n11 --> n23
+  n11 --> n31
+  n11 --> n32
+  n11 --> n45
+  n11 --> n51
+  n11 --> n54
+  n11 --> n55
+  n11 --> n64
+  n11 --> n71
+  n11 --> n74
+  n11 --> n78
+  n11 --> n81
+  n11 --> n83
+  n111 --> n112
+  n112 --> n111
+  n117 --> n1
+  n117 --> n103
+  n117 --> n122
+  n117 --> n123
+  n117 --> n124
+  n117 --> n23
+  n117 --> n31
+  n117 --> n32
+  n117 --> n45
+  n117 --> n51
+  n117 --> n54
+  n117 --> n55
+  n117 --> n64
+  n117 --> n71
+  n117 --> n74
+  n117 --> n78
+  n117 --> n81
+  n117 --> n83
+  n121 --> n10
+  n121 --> n127
+  n121 --> n13
+  n121 --> n2
+  n121 --> n73
+  n122 --> n10
+  n122 --> n121
+  n122 --> n127
+  n122 --> n13
+  n122 --> n2
+  n122 --> n73
+  n123 --> n1
+  n123 --> n103
+  n123 --> n122
+  n123 --> n124
+  n123 --> n23
+  n123 --> n31
+  n123 --> n32
+  n123 --> n45
+  n123 --> n51
+  n123 --> n54
+  n123 --> n55
+  n123 --> n64
+  n123 --> n71
+  n123 --> n74
+  n123 --> n78
+  n123 --> n81
+  n123 --> n83
+  n124 --> n1
+  n124 --> n103
+  n124 --> n122
+  n124 --> n123
+  n124 --> n23
+  n124 --> n31
+  n124 --> n32
+  n124 --> n45
+  n124 --> n51
+  n124 --> n54
+  n124 --> n55
+  n124 --> n64
+  n124 --> n71
+  n124 --> n74
+  n124 --> n78
+  n124 --> n81
+  n124 --> n83
+  n128 --> n1
+  n128 --> n103
+  n128 --> n122
+  n128 --> n123
+  n128 --> n124
+  n128 --> n23
+  n128 --> n31
+  n128 --> n32
+  n128 --> n45
+  n128 --> n51
+  n128 --> n54
+  n128 --> n55
+  n128 --> n64
+  n128 --> n71
+  n128 --> n74
+  n128 --> n78
+  n128 --> n81
+  n128 --> n83
+  n129 --> n1
+  n129 --> n103
+  n129 --> n122
+  n129 --> n123
+  n129 --> n124
+  n129 --> n23
+  n129 --> n31
+  n129 --> n32
+  n129 --> n45
+  n129 --> n51
+  n129 --> n54
+  n129 --> n55
+  n129 --> n64
+  n129 --> n71
+  n129 --> n74
+  n129 --> n78
+  n129 --> n81
+  n129 --> n83
+  n13 --> n10
+  n13 --> n121
+  n13 --> n127
+  n13 --> n2
+  n13 --> n73
+  n130 --> n1
+  n130 --> n10
+  n130 --> n103
+  n130 --> n121
+  n130 --> n122
+  n130 --> n123
+  n130 --> n124
+  n130 --> n127
+  n130 --> n128
+  n130 --> n129
+  n130 --> n13
+  n130 --> n2
+  n130 --> n23
+  n130 --> n31
+  n130 --> n32
+  n130 --> n45
+  n130 --> n51
+  n130 --> n54
+  n130 --> n55
+  n130 --> n64
+  n130 --> n71
+  n130 --> n73
+  n130 --> n74
+  n130 --> n78
+  n130 --> n81
+  n130 --> n83
+  n131 --> n1
+  n131 --> n10
+  n131 --> n103
+  n131 --> n121
+  n131 --> n122
+  n131 --> n123
+  n131 --> n124
+  n131 --> n127
+  n131 --> n128
+  n131 --> n129
+  n131 --> n13
+  n131 --> n2
+  n131 --> n23
+  n131 --> n31
+  n131 --> n32
+  n131 --> n45
+  n131 --> n51
+  n131 --> n54
+  n131 --> n55
+  n131 --> n64
+  n131 --> n71
+  n131 --> n73
+  n131 --> n74
+  n131 --> n78
+  n131 --> n81
+  n131 --> n83
+  n132 --> n115
+  n132 --> n116
+  n132 --> n117
+  n132 --> n118
+  n132 --> n119
+  n132 --> n120
+  n133 --> n1
+  n133 --> n103
+  n133 --> n122
+  n133 --> n123
+  n133 --> n124
+  n133 --> n23
+  n133 --> n31
+  n133 --> n32
+  n133 --> n45
+  n133 --> n51
+  n133 --> n54
+  n133 --> n55
+  n133 --> n64
+  n133 --> n71
+  n133 --> n74
+  n133 --> n78
+  n133 --> n81
+  n133 --> n83
+  n134 --> n133
+  n135 --> n115
+  n135 --> n116
+  n135 --> n117
+  n135 --> n118
+  n135 --> n119
+  n135 --> n120
+  n136 --> n115
+  n136 --> n116
+  n136 --> n117
+  n136 --> n118
+  n136 --> n119
+  n136 --> n120
+  n137 --> n115
+  n137 --> n116
+  n137 --> n117
+  n137 --> n118
+  n137 --> n119
+  n137 --> n120
+  n138 --> n115
+  n138 --> n116
+  n138 --> n117
+  n138 --> n118
+  n138 --> n119
+  n138 --> n120
+  n139 --> n1
+  n139 --> n10
+  n139 --> n103
+  n139 --> n121
+  n139 --> n122
+  n139 --> n123
+  n139 --> n124
+  n139 --> n127
+  n139 --> n13
+  n139 --> n2
+  n139 --> n23
+  n139 --> n31
+  n139 --> n32
+  n139 --> n45
+  n139 --> n51
+  n139 --> n54
+  n139 --> n55
+  n139 --> n64
+  n139 --> n71
+  n139 --> n73
+  n139 --> n74
+  n139 --> n78
+  n139 --> n81
+  n139 --> n83
+  n14 --> n3
+  n141 --> n1
+  n141 --> n10
+  n141 --> n103
+  n141 --> n115
+  n141 --> n116
+  n141 --> n117
+  n141 --> n118
+  n141 --> n119
+  n141 --> n120
+  n141 --> n121
+  n141 --> n122
+  n141 --> n123
+  n141 --> n124
+  n141 --> n127
+  n141 --> n13
+  n141 --> n130
+  n141 --> n131
+  n141 --> n139
+  n141 --> n2
+  n141 --> n23
+  n141 --> n31
+  n141 --> n32
+  n141 --> n45
+  n141 --> n51
+  n141 --> n54
+  n141 --> n55
+  n141 --> n64
+  n141 --> n71
+  n141 --> n73
+  n141 --> n74
+  n141 --> n78
+  n141 --> n81
+  n141 --> n83
+  n15 --> n4
+  n16 --> n5
+  n17 --> n6
+  n18 --> n7
+  n19 --> n8
+  n20 --> n21
+  n20 --> n9
+  n21 --> n22
   n22 --> n11
-  n22 --> n12
-  n22 --> n15
-  n22 --> n21
-  n22 --> n30
-  n22 --> n34
-  n22 --> n40
-  n22 --> n42
-  n22 --> n9
-  n23 --> n10
-  n23 --> n11
-  n23 --> n12
-  n23 --> n21
-  n23 --> n22
-  n23 --> n30
-  n23 --> n34
-  n23 --> n40
-  n23 --> n42
-  n24 --> n2
-  n24 --> n3
-  n24 --> n37
-  n24 --> n39
-  n24 --> n4
-  n24 --> n6
-  n24 --> n7
-  n25 --> n18
-  n25 --> n19
-  n25 --> n20
-  n26 --> n16
-  n26 --> n4
-  n26 --> n6
-  n26 --> n7
-  n26 --> n8
-  n27 --> n25
-  n27 --> n38
-  n27 --> n41
-  n28 --> n16
-  n28 --> n26
-  n28 --> n4
-  n28 --> n6
-  n28 --> n7
-  n28 --> n8
-  n29 --> n24
+  n23 --> n1
+  n23 --> n103
+  n23 --> n122
+  n23 --> n123
+  n23 --> n124
+  n23 --> n31
+  n23 --> n32
+  n23 --> n45
+  n23 --> n51
+  n23 --> n54
+  n23 --> n55
+  n23 --> n64
+  n23 --> n71
+  n23 --> n74
+  n23 --> n78
+  n23 --> n81
+  n23 --> n83
+  n24 --> n25
+  n25 --> n132
+  n25 --> n134
+  n25 --> n135
+  n25 --> n136
+  n25 --> n137
+  n25 --> n138
+  n25 --> n140
+  n25 --> n141
+  n29 --> n125
   n29 --> n27
-  n29 --> n28
-  n29 --> n41
-  n33 --> n10
-  n33 --> n11
-  n33 --> n12
-  n33 --> n21
-  n33 --> n22
-  n33 --> n30
-  n33 --> n34
-  n33 --> n36
-  n33 --> n40
-  n33 --> n42
-  n34 --> n10
-  n34 --> n11
-  n34 --> n12
-  n34 --> n21
-  n34 --> n22
-  n34 --> n30
+  n32 --> n1
+  n32 --> n10
+  n32 --> n103
+  n32 --> n121
+  n32 --> n122
+  n32 --> n123
+  n32 --> n124
+  n32 --> n127
+  n32 --> n13
+  n32 --> n2
+  n32 --> n23
+  n32 --> n31
+  n32 --> n45
+  n32 --> n48
+  n32 --> n51
+  n32 --> n54
+  n32 --> n55
+  n32 --> n61
+  n32 --> n64
+  n32 --> n71
+  n32 --> n72
+  n32 --> n73
+  n32 --> n74
+  n32 --> n78
+  n32 --> n81
+  n32 --> n83
+  n33 --> n1
+  n33 --> n103
+  n33 --> n122
+  n33 --> n123
+  n33 --> n124
+  n33 --> n23
+  n33 --> n31
+  n33 --> n32
+  n33 --> n45
+  n33 --> n51
+  n33 --> n54
+  n33 --> n55
+  n33 --> n64
+  n33 --> n71
+  n33 --> n74
+  n33 --> n77
+  n33 --> n78
+  n33 --> n81
+  n33 --> n83
+  n34 --> n14
+  n34 --> n15
+  n34 --> n16
+  n34 --> n18
+  n34 --> n19
+  n34 --> n3
+  n34 --> n4
   n34 --> n40
   n34 --> n42
-  n35 --> n10
-  n35 --> n11
-  n35 --> n12
-  n35 --> n21
-  n35 --> n22
+  n34 --> n46
+  n34 --> n5
+  n35 --> n28
+  n35 --> n29
   n35 --> n30
-  n35 --> n34
-  n35 --> n40
-  n35 --> n42
-  n35 --> n43
-  n39 --> n14
-  n42 --> n10
-  n42 --> n11
-  n42 --> n12
-  n42 --> n21
-  n42 --> n22
-  n42 --> n30
-  n42 --> n34
-  n42 --> n40
-  n8 --> n10
-  n8 --> n11
-  n8 --> n12
-  n8 --> n21
-  n8 --> n22
-  n8 --> n30
-  n8 --> n34
-  n8 --> n40
-  n8 --> n42
+  n36 --> n16
+  n36 --> n18
+  n36 --> n19
+  n36 --> n20
+  n36 --> n26
+  n36 --> n47
+  n36 --> n5
+  n37 --> n1
+  n37 --> n103
+  n37 --> n122
+  n37 --> n123
+  n37 --> n124
+  n37 --> n23
+  n37 --> n31
+  n37 --> n32
+  n37 --> n35
+  n37 --> n41
+  n37 --> n45
+  n37 --> n51
+  n37 --> n52
+  n37 --> n54
+  n37 --> n55
+  n37 --> n64
+  n37 --> n71
+  n37 --> n72
+  n37 --> n74
+  n37 --> n78
+  n37 --> n81
+  n37 --> n83
+  n38 --> n1
+  n38 --> n10
+  n38 --> n103
+  n38 --> n121
+  n38 --> n122
+  n38 --> n123
+  n38 --> n124
+  n38 --> n127
+  n38 --> n13
+  n38 --> n16
+  n38 --> n18
+  n38 --> n19
+  n38 --> n2
+  n38 --> n20
+  n38 --> n23
+  n38 --> n25
+  n38 --> n26
+  n38 --> n31
+  n38 --> n32
+  n38 --> n36
+  n38 --> n43
+  n38 --> n45
+  n38 --> n47
+  n38 --> n49
+  n38 --> n5
+  n38 --> n50
+  n38 --> n51
+  n38 --> n54
+  n38 --> n55
+  n38 --> n62
+  n38 --> n63
+  n38 --> n64
+  n38 --> n69
+  n38 --> n71
+  n38 --> n73
+  n38 --> n74
+  n38 --> n78
+  n38 --> n81
+  n38 --> n83
+  n39 --> n34
+  n39 --> n37
+  n39 --> n38
+  n39 --> n52
+  n42 --> n126
+  n43 --> n44
+  n43 --> n70
+  n44 --> n1
+  n44 --> n10
+  n44 --> n103
+  n44 --> n115
+  n44 --> n116
+  n44 --> n117
+  n44 --> n118
+  n44 --> n119
+  n44 --> n120
+  n44 --> n121
+  n44 --> n122
+  n44 --> n123
+  n44 --> n124
+  n44 --> n127
+  n44 --> n13
+  n44 --> n2
+  n44 --> n23
+  n44 --> n31
+  n44 --> n32
+  n44 --> n45
+  n44 --> n49
+  n44 --> n50
+  n44 --> n51
+  n44 --> n54
+  n44 --> n55
+  n44 --> n62
+  n44 --> n63
+  n44 --> n64
+  n44 --> n71
+  n44 --> n73
+  n44 --> n74
+  n44 --> n78
+  n44 --> n81
+  n44 --> n83
+  n47 --> n46
+  n48 --> n1
+  n48 --> n103
+  n48 --> n122
+  n48 --> n123
+  n48 --> n124
+  n48 --> n23
+  n48 --> n31
+  n48 --> n32
+  n48 --> n45
+  n48 --> n51
+  n48 --> n54
+  n48 --> n55
+  n48 --> n64
+  n48 --> n71
+  n48 --> n74
+  n48 --> n78
+  n48 --> n81
+  n48 --> n83
+  n49 --> n1
+  n49 --> n103
+  n49 --> n122
+  n49 --> n123
+  n49 --> n124
+  n49 --> n23
+  n49 --> n31
+  n49 --> n32
+  n49 --> n45
+  n49 --> n51
+  n49 --> n54
+  n49 --> n55
+  n49 --> n64
+  n49 --> n71
+  n49 --> n74
+  n49 --> n78
+  n49 --> n81
+  n49 --> n83
+  n51 --> n10
+  n51 --> n121
+  n51 --> n127
+  n51 --> n13
+  n51 --> n2
+  n51 --> n73
+  n52 --> n44
+  n52 --> n70
+  n54 --> n1
+  n54 --> n103
+  n54 --> n122
+  n54 --> n123
+  n54 --> n124
+  n54 --> n23
+  n54 --> n31
+  n54 --> n32
+  n54 --> n45
+  n54 --> n51
+  n54 --> n55
+  n54 --> n64
+  n54 --> n71
+  n54 --> n74
+  n54 --> n78
+  n54 --> n81
+  n54 --> n83
+  n61 --> n1
+  n61 --> n103
+  n61 --> n122
+  n61 --> n123
+  n61 --> n124
+  n61 --> n23
+  n61 --> n31
+  n61 --> n32
+  n61 --> n45
+  n61 --> n51
+  n61 --> n54
+  n61 --> n55
+  n61 --> n64
+  n61 --> n71
+  n61 --> n74
+  n61 --> n78
+  n61 --> n81
+  n61 --> n83
+  n62 --> n1
+  n62 --> n103
+  n62 --> n122
+  n62 --> n123
+  n62 --> n124
+  n62 --> n23
+  n62 --> n31
+  n62 --> n32
+  n62 --> n45
+  n62 --> n51
+  n62 --> n54
+  n62 --> n55
+  n62 --> n64
+  n62 --> n71
+  n62 --> n74
+  n62 --> n78
+  n62 --> n81
+  n62 --> n83
+  n69 --> n44
+  n69 --> n70
+  n70 --> n1
+  n70 --> n10
+  n70 --> n103
+  n70 --> n115
+  n70 --> n116
+  n70 --> n117
+  n70 --> n118
+  n70 --> n119
+  n70 --> n120
+  n70 --> n121
+  n70 --> n122
+  n70 --> n123
+  n70 --> n124
+  n70 --> n127
+  n70 --> n13
+  n70 --> n2
+  n70 --> n23
+  n70 --> n31
+  n70 --> n32
+  n70 --> n45
+  n70 --> n49
+  n70 --> n50
+  n70 --> n51
+  n70 --> n54
+  n70 --> n55
+  n70 --> n62
+  n70 --> n63
+  n70 --> n64
+  n70 --> n71
+  n70 --> n73
+  n70 --> n74
+  n70 --> n78
+  n70 --> n81
+  n70 --> n83
+  n72 --> n1
+  n72 --> n103
+  n72 --> n104
+  n72 --> n105
+  n72 --> n106
+  n72 --> n107
+  n72 --> n108
+  n72 --> n109
+  n72 --> n110
+  n72 --> n122
+  n72 --> n123
+  n72 --> n124
+  n72 --> n23
+  n72 --> n31
+  n72 --> n32
+  n72 --> n45
+  n72 --> n51
+  n72 --> n54
+  n72 --> n55
+  n72 --> n64
+  n72 --> n71
+  n72 --> n74
+  n72 --> n78
+  n72 --> n81
+  n72 --> n83
+  n72 --> n85
+  n72 --> n86
+  n72 --> n87
+  n72 --> n88
+  n72 --> n89
+  n72 --> n92
+  n72 --> n94
+  n72 --> n95
+  n72 --> n97
+  n72 --> n98
+  n77 --> n1
+  n77 --> n103
+  n77 --> n122
+  n77 --> n123
+  n77 --> n124
+  n77 --> n23
+  n77 --> n31
+  n77 --> n32
+  n77 --> n45
+  n77 --> n51
+  n77 --> n54
+  n77 --> n55
+  n77 --> n64
+  n77 --> n71
+  n77 --> n74
+  n77 --> n78
+  n77 --> n80
+  n77 --> n81
+  n77 --> n83
+  n78 --> n1
+  n78 --> n103
+  n78 --> n122
+  n78 --> n123
+  n78 --> n124
+  n78 --> n23
+  n78 --> n31
+  n78 --> n32
+  n78 --> n45
+  n78 --> n51
+  n78 --> n54
+  n78 --> n55
+  n78 --> n64
+  n78 --> n71
+  n78 --> n74
+  n78 --> n81
+  n78 --> n83
+  n79 --> n1
+  n79 --> n103
+  n79 --> n122
+  n79 --> n123
+  n79 --> n124
+  n79 --> n23
+  n79 --> n31
+  n79 --> n32
+  n79 --> n45
+  n79 --> n51
+  n79 --> n54
+  n79 --> n55
+  n79 --> n64
+  n79 --> n71
+  n79 --> n74
+  n79 --> n78
+  n79 --> n81
+  n79 --> n82
+  n79 --> n83
+  n79 --> n84
+  n81 --> n1
+  n81 --> n103
+  n81 --> n122
+  n81 --> n123
+  n81 --> n124
+  n81 --> n23
+  n81 --> n31
+  n81 --> n32
+  n81 --> n45
+  n81 --> n51
+  n81 --> n54
+  n81 --> n55
+  n81 --> n64
+  n81 --> n71
+  n81 --> n74
+  n81 --> n78
+  n81 --> n83
+  n83 --> n1
+  n83 --> n103
+  n83 --> n122
+  n83 --> n123
+  n83 --> n124
+  n83 --> n23
+  n83 --> n31
+  n83 --> n32
+  n83 --> n45
+  n83 --> n51
+  n83 --> n54
+  n83 --> n55
+  n83 --> n64
+  n83 --> n71
+  n83 --> n74
+  n83 --> n78
+  n83 --> n81
+  n85 --> n91
   n9 --> n1
-  n9 --> n15
+  n9 --> n103
+  n9 --> n122
+  n9 --> n123
+  n9 --> n124
+  n9 --> n23
+  n9 --> n31
+  n9 --> n32
+  n9 --> n45
+  n9 --> n51
+  n9 --> n54
+  n9 --> n55
+  n9 --> n64
+  n9 --> n71
+  n9 --> n74
+  n9 --> n78
+  n9 --> n81
+  n9 --> n83
+  n91 --> n90
+  n94 --> n112
+  n95 --> n1
+  n95 --> n103
+  n95 --> n122
+  n95 --> n123
+  n95 --> n124
+  n95 --> n23
+  n95 --> n31
+  n95 --> n32
+  n95 --> n45
+  n95 --> n51
+  n95 --> n54
+  n95 --> n55
+  n95 --> n64
+  n95 --> n71
+  n95 --> n74
+  n95 --> n78
+  n95 --> n81
+  n95 --> n83
+  n95 --> n96
+  n97 --> n1
+  n97 --> n103
+  n97 --> n122
+  n97 --> n123
+  n97 --> n124
+  n97 --> n23
+  n97 --> n31
+  n97 --> n32
+  n97 --> n45
+  n97 --> n51
+  n97 --> n54
+  n97 --> n55
+  n97 --> n64
+  n97 --> n71
+  n97 --> n74
+  n97 --> n78
+  n97 --> n81
+  n97 --> n83

@@ -3,16 +3,19 @@ use macroquad::ui::{hash, root_ui};
 use crate::world::worldmap::city::City;
 use crate::world::worldmap::civilization::Civilization;
 use crate::world::worldmap::biome::BiomeId;
-use crate::gui::civ_portraits::CivPortraits;
+use crate::gui::windows::city_info::portraits::CivPortraits;
 use crate::world::worldmap::world_map::WorldMap;
+use crate::gui::windows::city_info::state::CityInfoState;
 
-pub fn city_info_window(city: &City, show: &mut bool, portraits: &CivPortraits, world_map: &WorldMap) {
+pub fn city_info_window(state: &mut CityInfoState, city: &City, portraits: &CivPortraits, world_map: &WorldMap) {
+    if !state.show { return; }
     let win_pos = vec2(900.0, 80.0);
     let win_size = vec2(420.0, 340.0);
-    city_info_window_at(city, show, portraits, win_pos, win_size, world_map);
+    city_info_window_at(state, city, portraits, win_pos, win_size, world_map);
 }
 
-pub fn city_info_window_at(city: &City, show: &mut bool, portraits: &CivPortraits, win_pos: Vec2, win_size: Vec2, world_map: &WorldMap) {
+pub fn city_info_window_at(state: &mut CityInfoState, city: &City, portraits: &CivPortraits, win_pos: Vec2, win_size: Vec2, world_map: &WorldMap) {
+    if !state.show { return; }
     // Calculate portrait position
     let portrait_size = 96.0;
     let px = win_pos.x + win_size.x - portrait_size - 16.0;
@@ -80,7 +83,7 @@ pub fn city_info_window_at(city: &City, show: &mut bool, portraits: &CivPortrait
         ui.separator();
         // Close button
         if ui.button(None, "Close") {
-            *show = false;
+            state.show = false;
         }
     });
 } 

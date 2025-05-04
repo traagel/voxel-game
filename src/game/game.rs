@@ -14,16 +14,28 @@ use crate::worldgen::worldmap::WorldMapGenerator;
 use macroquad::prelude::*;
 use macroquad::rand::gen_range;
 use macroquad::prelude::{*, screen_width, screen_height};
-use crate::gui::civ_portraits::CivPortraits;
+use crate::gui::windows::city_info::portraits::CivPortraits;
 use macroquad::ui::{hash, root_ui};
 use crate::world::worldmap::civilization::Civilization;
-use crate::gui::MenuState;
-use crate::gui::city_info_window::city_info_window;
+use crate::gui::windows::main_menu::MainMenuState;
+use crate::gui::windows::city_info::city_info_window;
+use crate::gui::windows::window_manager::WindowManager;
+use crate::gui::windows::worldgen::draw_worldgen_window;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RenderMode {
     WorldMap,
     LocalMap,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum GameView {
+    MainMenu,
+    WorldGen,
+    WorldMap,
+    LocalMap,
+    CityInfo,
+    RegionMap,
 }
 
 pub struct Game {
@@ -39,19 +51,27 @@ pub struct Game {
     previous_mouse_x: f32,
     previous_mouse_y: f32,
     portraits: Option<CivPortraits>,
-    menu: MenuState,
+    window_manager: WindowManager,
+    pub active_view: GameView,
 }
 
 impl Game {
     pub async fn new() -> Self {
-        let mut gui = GuiState::new();
+        let gui = GuiState::new();
         let world_map_renderer = WorldMapRenderer::new().await;
-        let world_map_gen = WorldMapGenerator::new(42, gui.worldgen_width, gui.worldgen_height, 0.02, None);
+        let window_manager = WindowManager::new();
+        let world_map_gen = WorldMapGenerator::new(
+            42,
+            window_manager.worldgen.width,
+            window_manager.worldgen.height,
+            0.02,
+            None,
+        );
         let world_map = world_map_gen.generate();
         let portraits = Some(CivPortraits::load().await);
 
         // Set a default selected civilization for testing
-        gui.selected_civ = Some(Civilization::Human);
+        // window_manager.city_info.selected_civ = Some(Civilization::Human); // Uncomment if you want a default
 
         Self {
             world: World::new(),
@@ -66,7 +86,8 @@ impl Game {
             previous_mouse_x: 0.0, // Initialize previous mouse position
             previous_mouse_y: 0.0, // Initialize previous mouse position
             portraits,
-            menu: MenuState::new(),
+            window_manager,
+            active_view: GameView::WorldMap, // Start in WorldMap view
         }
     }
 
@@ -101,14 +122,15 @@ impl Game {
     fn handle_input(&mut self) {
         // ESC key toggles main menu
         if is_key_pressed(KeyCode::Escape) {
-            self.menu.toggle_main();
+            self.window_manager.main_menu.toggle_main();
         }
 
-        // Switch between LocalMap and WorldMap
+        // Switch between WorldMap and LocalMap views
         if is_key_pressed(KeyCode::Tab) {
-            self.render_mode = match self.render_mode {
-                RenderMode::WorldMap => RenderMode::LocalMap,
-                RenderMode::LocalMap => RenderMode::WorldMap,
+            self.active_view = match self.active_view {
+                GameView::WorldMap => GameView::LocalMap,
+                GameView::LocalMap => GameView::WorldMap,
+                _ => GameView::WorldMap,
             };
         }
     
@@ -117,7 +139,7 @@ impl Game {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
 
-                    // Center map on ‘C’
+                    // Center map on 'C'
                     if is_key_pressed(KeyCode::C) {
                         if let Some(zlevel) = self.world.z_levels.get(0) {
                             // gather all loaded chunk coordinates
@@ -127,7 +149,7 @@ impl Game {
                                 xs.sort_unstable();
                                 ys.sort_unstable();
         
-                                // compute world‐unit extents
+                                // compute world-unit extents
                                 let min_cx = xs[0]           as f32;
                                 let max_cx = xs[xs.len()-1]  as f32 + 1.0;
                                 let min_cy = ys[0]           as f32;
@@ -138,11 +160,11 @@ impl Game {
                                 const TILE_PX:     f32 = 8.0;
                                 let subpx_per_chunk = CHUNK_SIZE * TILE_PX;
         
-                                // true map center in world‐subpixels
+                                // true map center in world-subpixels
                                 let world_center_x = (min_cx + max_cx) * 0.5 * subpx_per_chunk;
                                 let world_center_y = (min_cy + max_cy) * 0.5 * subpx_per_chunk;
         
-                                // convert screen half‐width to world units
+                                // convert screen half-width to world units
                                 let zoom = self.local_map_renderer.get_zoom();
                                 let sw   = screen_width();
                                 let sh   = screen_height();
@@ -173,7 +195,7 @@ impl Game {
                         let old_zoom = self.local_map_renderer.get_zoom();
                         let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
                         if (new_zoom - old_zoom).abs() > f32::EPSILON {
-                            // compute world‐space point under cursor pre‐zoom
+                            // compute world-space point under cursor pre-zoom
                             let (mx, my) = mouse_position();
                             let world_x = self.local_map_renderer.get_camera_x() + mx / old_zoom;
                             let world_y = self.local_map_renderer.get_camera_y() + my / old_zoom;
@@ -233,7 +255,7 @@ impl Game {
                     let move_speed = 200.0 * get_frame_time();
                     let zoom_speed = 0.2;
 
-                    // Center map on ‘C’
+                    // Center map on 'C'
                     if is_key_pressed(KeyCode::C) {
                         // map dims in tiles
                         let w = self.world_map.width  as f32;
@@ -243,7 +265,7 @@ impl Game {
                         // screen size
                         let sw   = screen_width();
                         let sh   = screen_height();
-                        // half‐screen in world‐units
+                        // half-screen in world-units
                         let half_wu_x = (sw * 0.5) / (TILE_PX * zoom);
                         let half_wu_y = (sh * 0.5) / (TILE_PX * zoom);
                         // desired camera position
@@ -314,6 +336,25 @@ impl Game {
                         self.previous_mouse_y = 0.0;
                     }
 
+                    // --- City click handling ---
+                    if is_mouse_button_pressed(MouseButton::Left) {
+                        const TILE_PX: f32 = 8.0;
+                        let (mx, my) = mouse_position();
+                        let world_x = self.world_map_camera.x + mx / (TILE_PX * self.world_map_camera.zoom);
+                        let world_y = self.world_map_camera.y + my / (TILE_PX * self.world_map_camera.zoom);
+                        // Find city under cursor (within a radius)
+                        let city_radius = 0.5; // in world units
+                        if let Some(city) = self.world_map.cities.iter().find(|city| {
+                            let dx = city.x as f32 - world_x;
+                            let dy = city.y as f32 - world_y;
+                            (dx * dx + dy * dy).sqrt() < city_radius
+                        }).cloned() {
+                            self.window_manager.city_info.selected_city = Some(city);
+                            self.window_manager.city_info.show = true;
+                            self.active_view = GameView::CityInfo;
+                        }
+                    }
+
             }
         }
     }
@@ -346,13 +387,7 @@ impl Game {
     fn update(&mut self) {
         self.update_creatures();
         self.gui.dig_jobs = count_dig_jobs(&self.world);
-        self.gui.update(
-            &self.world,
-            self.render_mode,
-            if self.render_mode == RenderMode::WorldMap { Some(&self.world_map) } else { None },
-            if self.render_mode == RenderMode::WorldMap { Some(&self.world_map_camera) } else { None },
-            self.portraits.as_ref(),
-        );
+        self.gui.update(&self.world, self.render_mode);
         if let RenderMode::LocalMap = self.render_mode {
             for p in &mut self.particles {
                 p.x += p.dx;
@@ -363,33 +398,46 @@ impl Game {
             self.particles.retain(|p| p.life > 0);
         }
         // World map regeneration logic
-        if self.gui.regenerate_requested {
-            let params = self.gui.worldgen_params;
+        if self.window_manager.worldgen.regenerate_requested {
+            let params = self.window_manager.worldgen.params;
             let world_map_gen = WorldMapGenerator::new(
-                self.gui.worldgen_seed,
-                self.gui.worldgen_width,
-                self.gui.worldgen_height,
+                self.window_manager.worldgen.seed,
+                self.window_manager.worldgen.width,
+                self.window_manager.worldgen.height,
                 0.02,
                 Some(params),
             );
             self.world_map = world_map_gen.generate();
-            self.gui.regenerate_requested = false;
+            self.window_manager.worldgen.regenerate_requested = false;
         }
     }
 
     fn render(&mut self) {
-        // 1) Draw either the world map or the local map under its own camera
-        match self.render_mode {
-            RenderMode::WorldMap => {
+        match self.active_view {
+            GameView::MainMenu => {
+                self.window_manager.main_menu.draw();
+            }
+            GameView::WorldGen => {
+                draw_worldgen_window(&mut self.window_manager.worldgen);
+            }
+            GameView::WorldMap => {
+                // Draw world map and generator settings
                 self.world_map_renderer
                     .draw_world_map_with_view(
                         &self.world_map,
                         &self.world_map_camera,
-                        self.gui.map_view,
+                        crate::renderer::world_map_renderer::MapView::Biome,
                         self.world_map.sea_level,
                     );
+                draw_worldgen_window(&mut self.window_manager.worldgen);
             }
-            RenderMode::LocalMap => {
+            GameView::RegionMap => {
+                // TODO: Implement region map rendering
+                // For now, just clear background and show a stub label
+                clear_background(DARKGRAY);
+                draw_text("[Region Map View - TODO]", 100.0, 100.0, 32.0, WHITE);
+            }
+            GameView::LocalMap => {
                 let state = GameState {
                     camera_x: self.local_map_renderer.get_camera_x(),
                     camera_y: self.local_map_renderer.get_camera_y(),
@@ -405,50 +453,41 @@ impl Game {
                         * self.local_map_renderer.get_zoom();
                     draw_circle(sx, sy, 0.2 * self.local_map_renderer.get_zoom(), YELLOW);
                 }
+                crate::gui::windows::worker_info::draw_worker_info_window(&mut self.window_manager.worker_info);
+            }
+            GameView::CityInfo => {
+                // Draw world map in background
+                self.world_map_renderer
+                    .draw_world_map_with_view(
+                        &self.world_map,
+                        &self.world_map_camera,
+                        crate::renderer::world_map_renderer::MapView::Biome,
+                        self.world_map.sea_level,
+                    );
+                draw_worldgen_window(&mut self.window_manager.worldgen);
+                let city_info_selected = self.window_manager.city_info.selected_city.clone();
+                let portraits = self.portraits.as_ref();
+                let city_info_state = &mut self.window_manager.city_info;
+                if let (Some(city), Some(portraits)) = (city_info_selected.as_ref(), portraits) {
+                    crate::gui::windows::city_info::city_info_window(
+                        city_info_state,
+                        city,
+                        portraits,
+                        &self.world_map,
+                    );
+                    // If the city info window was closed, return to WorldMap view
+                    if !city_info_state.show {
+                        self.active_view = GameView::WorldMap;
+                    }
+                } else {
+                    // If no city is selected, return to WorldMap view
+                    self.active_view = GameView::WorldMap;
+                }
             }
         }
-
-        // 2) Draw the selected civilization portrait (still in screen space)
-        /*
-        if let (Some(civ), Some(portraits)) = (self.gui.selected_civ, self.portraits.as_ref()) {
-            if let Some(src_rect) = portraits.get_portrait_rect(civ) {
-                let portrait_size = 96.0;
-                let px = (screen_width() - portrait_size) * 0.5;
-                let py = 16.0;
-                draw_texture_ex(
-                    portraits.get_texture(),
-                    px,
-                    py,
-                    WHITE,
-                    DrawTextureParams {
-                        dest_size: Some(Vec2::new(portrait_size, portrait_size)),
-                        source: Some(src_rect),
-                        ..Default::default()
-                    },
-                );
-            }
-        }
-        */
-
-        // 3) Reset to default screen‐space camera before drawing UI
+        // Reset to default screen-space camera before drawing UI
         set_default_camera();
-
-        // 4) Overlay Main Menu
-        self.menu.draw(&mut self.gui);
-
-        // 5) Finally draw city‐info window if active
-        if let (Some(city), Some(portraits)) =
-            (self.gui.selected_city.as_ref(), self.portraits.as_ref())
-        {
-            city_info_window(
-                city,
-                &mut self.gui.show_city_info,
-                portraits,
-                &self.world_map,
-            );
-        }
     }
-
 
     pub async fn run(&mut self) {
         loop {
