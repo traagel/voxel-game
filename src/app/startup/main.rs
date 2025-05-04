@@ -8,7 +8,6 @@ use crate::ecs::{
         world::WorldRes,
         gui_state::GuiStateRes, 
         window_manager::{
-            WindowManagerRes,
             CityInfoStateRes,
             MainMenuStateRes,
             WorldGenWindowStateRes,
@@ -17,8 +16,8 @@ use crate::ecs::{
         game_view::{GameViewRes, GameView},
         particle::ParticlesRes,
     },
+    systems::startup::load_assets,
 };
-use crate::gui::windows::window_state::WindowState;
 
 pub async fn init(world: &mut World) {
     // ── Insert renderers as resources ──
@@ -42,24 +41,21 @@ pub async fn init(world: &mut World) {
     world.insert_resource(WorldMapRes(world_map));
     
     // Insert GUI resources
-    let mut gui_state = crate::gui::GuiState::new();
-    gui_state.show_ui = true; // Make sure GUI is visible by default
-    world.insert_resource(GuiStateRes(gui_state));
-    
-    world.insert_resource(WindowManagerRes(crate::gui::windows::window_manager::WindowManager::new()));
+    let gui_state = GuiStateRes::new();
+    world.insert_resource(gui_state);
     
     // Insert individual window state resources
     world.insert_resource(CityInfoStateRes::default());
     
     // Set up main menu
-    let mut main_menu = crate::gui::windows::main_menu::MainMenuState::new();
+    let mut main_menu = MainMenuStateRes::new();
     main_menu.show(); // Make main menu visible by default
-    world.insert_resource(MainMenuStateRes(main_menu));
+    world.insert_resource(main_menu);
     
     // Set up worldgen window
-    let mut worldgen_state = crate::gui::windows::worldgen::WorldGenWindowState::new();
+    let mut worldgen_state = WorldGenWindowStateRes::new();
     worldgen_state.show(); // Make worldgen window visible by default
-    world.insert_resource(WorldGenWindowStateRes(worldgen_state));
+    world.insert_resource(worldgen_state);
     
     world.insert_resource(WorkerInfoStateRes::default());
     
@@ -70,9 +66,8 @@ pub async fn init(world: &mut World) {
     
     world.insert_resource(ParticlesRes::default());
     
-    // Load portraits if needed
-    let portraits = crate::gui::windows::city_info::portraits::CivPortraits::load().await;
-    world.insert_resource(crate::ecs::resources::portraits::CivPortraitsRes(portraits));
+    // Load all game assets
+    load_assets(world).await;
 
     // ── spawn cameras ──
     world.spawn((Camera::default(), WorldMapCamera));

@@ -1,11 +1,21 @@
-use crate::gui::windows::worker_info::WorkerInfoState;
 use bevy_ecs::prelude::*;
 
-#[derive(Resource)]
-pub struct WorkerInfoStateRes(pub WorkerInfoState);
+#[derive(Resource, Default)]
+pub struct WorkerInfoStateRes {
+    pub show: bool,
+    pub selected_worker: Option<usize>, // Placeholder for worker ID or struct
+}
 
-impl Default for WorkerInfoStateRes {
-    fn default() -> Self {
-        Self(WorkerInfoState::new())
+impl WorkerInfoStateRes {
+    pub fn new() -> Self {
+        Self {
+            show: false,
+            selected_worker: None,
+        }
     }
+    
+    pub fn is_visible(&self) -> bool { self.show }
+    pub fn show(&mut self) { self.show = true; }
+    pub fn hide(&mut self) { self.show = false; }
+    pub fn toggle(&mut self) { self.show = !self.show; }
 } 

@@ -18,10 +18,10 @@ pub fn update_window_interactions(
     world_map: Res<WorldMapRes>,
 ) {
     // Handle world generation requests
-    if worldgen.0.regenerate_requested {
+    if worldgen.regenerate_requested {
         // Here we would trigger the world regeneration
         // This could involve sending an event or updating a flag in a resource
-        worldgen.0.regenerate_requested = false;
+        worldgen.regenerate_requested = false;
     }
     
     // Update city info based on selections
@@ -29,10 +29,10 @@ pub fn update_window_interactions(
         GameView::WorldMap | GameView::CityInfo => {
             // Here we would handle city selection updates
             // This is a placeholder for the actual implementation
-            if let Some(selected_city) = &city_info.0.selected_city {
+            if let Some(selected_city) = &city_info.selected_city {
                 // If a city is selected, update any other dependent UI state
                 // For example, update the civilization information
-                city_info.0.selected_civ = Some(selected_city.civ);
+                city_info.selected_civ = Some(selected_city.civ);
             }
         },
         _ => {}

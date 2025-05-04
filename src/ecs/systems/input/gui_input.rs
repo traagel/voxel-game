@@ -9,7 +9,6 @@ use crate::ecs::resources::{
     },
     game_view::{GameViewRes, GameView, RenderMode},
 };
-use crate::gui::windows::window_state::WindowState;
 
 /// System to handle GUI-related keyboard/mouse input
 pub fn handle_gui_input(
@@ -21,7 +20,7 @@ pub fn handle_gui_input(
 ) {
     // Handle Escape key to toggle main menu
     if is_key_pressed(KeyCode::Escape) {
-        main_menu.0.toggle();
+        main_menu.toggle();
     }
     
     // Game view specific input handling
@@ -32,16 +31,16 @@ pub fn handle_gui_input(
         GameView::WorldMap => {
             // World map specific GUI input
             if is_key_pressed(KeyCode::W) {
-                worldgen.0.toggle(); // Assuming WorldGenWindowState implements WindowState
+                worldgen.toggle();
             }
             if is_key_pressed(KeyCode::C) {
-                city_info.0.toggle();
+                city_info.toggle();
             }
         },
         GameView::LocalMap => {
             // Local map specific GUI input
             if is_key_pressed(KeyCode::I) {
-                worker_info.0.toggle();
+                worker_info.toggle();
             }
         },
         _ => {
