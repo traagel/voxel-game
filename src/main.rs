@@ -8,10 +8,6 @@ mod particle;
 mod input;
 mod ecs;
 
-use game::game::Game;
-
-mod game;
-
 mod app;  // holds App struct that owns World & Schedule
 
 #[macroquad::main("Voxel Engine")]

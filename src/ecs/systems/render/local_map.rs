@@ -13,7 +13,7 @@ use crate::ecs::{
         particle::ParticlesRes,
     }
 };
-use crate::game::game_state::GameState;
+use crate::renderer::local_map_renderer::GameState;
 use macroquad::prelude::*;
 
 pub fn draw_local_map(

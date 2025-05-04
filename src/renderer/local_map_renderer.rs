@@ -1,8 +1,17 @@
 use macroquad::prelude::*;
-use crate::game::game_state::GameState;
+use crate::world::localmap::zlevel::ZLevel;
 use crate::renderer::camera::Camera;
 use crate::renderer::grid::draw_grid;
 use crate::renderer::tile_render::TileRenderer;
+
+/// An immutable snapshot of all data needed for rendering.
+pub struct GameState<'a> {
+    pub camera_x: f32,
+    pub camera_y: f32,
+    pub zoom: f32,
+    pub z_levels: &'a [ZLevel],
+    // In the future, you can add creatures, particles, gui, etc.
+}
 
 pub struct LocalMapRenderer {
     pub camera: Camera,

@@ -1,5 +1,5 @@
 use crate::world::localmap::world::World;
-use crate::game::game::RenderMode;
+use crate::ecs::resources::game_view::RenderMode;
 
 #[derive(Default)]
 pub struct GuiState {
