@@ -12,6 +12,7 @@ use crate::worldgen::localmap::builder::WorldGeneratorBuilder;
 use crate::worldgen::worldmap::WorldMapGenerator;
 use crate::gui::windows::city_info::portraits::CivPortraits;
 use crate::gui::windows::window_manager::WindowManager;
+use crate::input::manager::InputManager;
 use macroquad::prelude::*;
 
 use crate::game::views::GameView;
@@ -29,6 +30,7 @@ pub struct Game {
     render_mode: RenderMode,
     world_map_camera: Camera,
     input_handler: InputHandler,
+    input_manager: InputManager,
     portraits: Option<CivPortraits>,
     window_manager: WindowManager,
     pub active_view: GameView,
@@ -60,6 +62,7 @@ impl Game {
             render_mode: RenderMode::WorldMap, // Start in world map mode
             world_map_camera: Camera::default(),
             input_handler: InputHandler::new(),
+            input_manager: InputManager::new(),
             portraits,
             window_manager,
             active_view: GameView::WorldMap, // Start in WorldMap view
@@ -87,7 +90,7 @@ impl Game {
 
         // Update GUI
         self.gui.dig_jobs = count_dig_jobs(&self.world);
-        self.gui.update(&self.world, self.render_mode);
+        self.gui.update(&self.world, self.render_mode, &self.input_manager);
         
         // World map regeneration logic
         if self.window_manager.worldgen.regenerate_requested {
@@ -165,6 +168,10 @@ impl Game {
 
     pub async fn run(&mut self) {
         loop {
+            // Process inputs at the start of each frame
+            self.input_manager.begin_frame();
+            self.input_manager.collect();
+            
             // Sync render_mode with active_view before handling input
             self.render_mode = match self.active_view {
                 GameView::LocalMap => RenderMode::LocalMap,
@@ -172,8 +179,9 @@ impl Game {
                 _ => self.render_mode, // Keep current mode for other views
             };
             
-            // Handle input
+            // Handle input using the input manager
             self.input_handler.handle_input(
+                &self.input_manager,
                 self.render_mode,
                 &mut self.active_view,
                 &mut self.window_manager,

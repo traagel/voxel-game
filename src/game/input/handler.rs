@@ -6,6 +6,8 @@ use crate::renderer::camera::Camera;
 use crate::world::localmap::world::World;
 use crate::gui::windows::window_manager::WindowManager;
 use crate::world::worldmap::world_map::WorldMap;
+use crate::input::manager::InputManager;
+use crate::input::event::InputEvent;
 
 // Import view modules with their original names
 use crate::game::views::{world_map as view_world_map, local_map as view_local_map};
@@ -29,6 +31,7 @@ impl InputHandler {
 
     pub fn handle_input(
         &mut self,
+        input: &InputManager,
         render_mode: RenderMode,
         active_view: &mut GameView,
         window_manager: &mut WindowManager,
@@ -37,14 +40,17 @@ impl InputHandler {
         world_map: &WorldMap,
         world_map_camera: &mut Camera,
     ) -> bool {
+        let events = input.events();
+        let state = input.state();
+
         // ESC key toggles main menu
-        if is_key_pressed(KeyCode::Escape) {
+        if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::Escape))) {
             window_manager.main_menu.toggle_main();
             return true;
         }
 
         // Switch between WorldMap and LocalMap views
-        if is_key_pressed(KeyCode::Tab) {
+        if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::Tab))) {
             *active_view = match *active_view {
                 GameView::WorldMap => GameView::LocalMap,
                 GameView::LocalMap => GameView::WorldMap,
@@ -58,6 +64,7 @@ impl InputHandler {
             RenderMode::LocalMap => {
                 // Handle local map input through our local_map module
                 input_local_map::handle_input(
+                    input,
                     &mut self.previous_mouse_x,
                     &mut self.previous_mouse_y,
                     local_map_renderer,
@@ -67,6 +74,7 @@ impl InputHandler {
             RenderMode::WorldMap => {
                 // Handle world map input through our world_map module
                 let view_changed = input_world_map::handle_input(
+                    input,
                     &mut self.previous_mouse_x,
                     &mut self.previous_mouse_y,
                     world_map_camera, 

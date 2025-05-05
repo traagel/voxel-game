@@ -1,27 +1,13 @@
+use crate::input::event::InputEvent;
 use macroquad::prelude::*;
 use crate::renderer::camera::Camera;
 use crate::world::worldmap::world_map::WorldMap;
 use crate::gui::windows::window_manager::WindowManager;
 use crate::game::views::{GameView, world_map as view_world_map};
-
-pub fn center_camera(world_map_camera: &mut Camera, x: f32, y: f32) {
-    const TILE_PX: f32 = 8.0;
-    let zoom = world_map_camera.zoom;
-    let sw = screen_width();
-    let sh = screen_height();
-    
-    // Calculate the camera position to center on (x,y)
-    let cam_x = x - sw / (2.0 * TILE_PX * zoom);
-    let cam_y = y - sh / (2.0 * TILE_PX * zoom);
-    
-    // Apply the delta
-    world_map_camera.move_delta(
-        cam_x - world_map_camera.x,
-        cam_y - world_map_camera.y,
-    );
-}
+use crate::input::manager::InputManager;
 
 pub fn handle_input(
+    input: &InputManager,
     previous_mouse_x: &mut f32,
     previous_mouse_y: &mut f32,
     world_map_camera: &mut Camera,
@@ -32,21 +18,19 @@ pub fn handle_input(
     let mut view_change = None;
     let move_speed = 200.0 * get_frame_time();
     let zoom_speed = 0.2;
+    let state = input.state();
+    let events = input.events();
 
     // Center map on 'C'
-    if is_key_pressed(KeyCode::C) {
-        // map dims in tiles
-        let w = world_map.width  as f32;
+    if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::C))) {
+        let w = world_map.width as f32;
         let h = world_map.height as f32;
         const TILE_PX: f32 = 8.0;
         let zoom = world_map_camera.zoom;
-        // screen size
-        let sw   = screen_width();
-        let sh   = screen_height();
-        // half-screen in world-units
+        let sw = screen_width();
+        let sh = screen_height();
         let half_wu_x = (sw * 0.5) / (TILE_PX * zoom);
         let half_wu_y = (sh * 0.5) / (TILE_PX * zoom);
-        // desired camera position
         let desired_cam_x = w * 0.5 - half_wu_x;
         let desired_cam_y = h * 0.5 - half_wu_y;
 
@@ -59,45 +43,38 @@ pub fn handle_input(
 
     // WASD pan
     let mut movement = false;
-    if is_key_down(KeyCode::W) { 
+    if state.keys_down.contains(&KeyCode::W) {
         world_map_camera.move_delta(0.0, -move_speed);
         movement = true;
     }
-    if is_key_down(KeyCode::S) { 
-        world_map_camera.move_delta(0.0,  move_speed);
+    if state.keys_down.contains(&KeyCode::S) {
+        world_map_camera.move_delta(0.0, move_speed);
         movement = true;
     }
-    if is_key_down(KeyCode::A) { 
+    if state.keys_down.contains(&KeyCode::A) {
         world_map_camera.move_delta(-move_speed, 0.0);
         movement = true;
     }
-    if is_key_down(KeyCode::D) { 
+    if state.keys_down.contains(&KeyCode::D) {
         world_map_camera.move_delta(move_speed, 0.0);
         movement = true;
     }
-    
     if movement {
         input_handled = true;
     }
 
-    // Zoom around cursor (account for 8px tiles)
-    let wheel = mouse_wheel().1;
+    // Zoom around cursor (8px tiles)
+    let wheel = state.mouse_scroll;
     if wheel != 0.0 {
         const TILE_PX: f32 = 8.0;
         let old_zoom = world_map_camera.zoom;
         let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
-
-        // old/full scale in px-per-world-unit
         let old_scale = TILE_PX * old_zoom;
-        let (mx, my) = mouse_position();
+        let (mx, my) = state.mouse_position;
         let world_x = world_map_camera.x + mx / old_scale;
         let world_y = world_map_camera.y + my / old_scale;
-
-        // apply new zoom
         world_map_camera.set_zoom(new_zoom);
         let new_scale = TILE_PX * new_zoom;
-
-        // recenter
         let new_cam_x = world_x - mx / new_scale;
         let new_cam_y = world_y - my / new_scale;
         world_map_camera.move_delta(
@@ -108,37 +85,36 @@ pub fn handle_input(
     }
 
     // Start drag
-    if is_mouse_button_pressed(MouseButton::Middle) {
-        let (mx, my) = mouse_position();
+    if events.iter().any(|e| matches!(e, InputEvent::MouseDown(MouseButton::Middle))) {
+        let (mx, my) = state.mouse_position;
         *previous_mouse_x = mx;
         *previous_mouse_y = my;
         input_handled = true;
     }
+
     // Continue drag
-    if is_mouse_button_down(MouseButton::Middle) {
-        let (mx, my) = mouse_position();
+    if state.mouse_buttons.contains(&MouseButton::Middle) {
+        let (mx, my) = state.mouse_position;
         let dx = mx - *previous_mouse_x;
         let dy = my - *previous_mouse_y;
-
         const TILE_PX: f32 = 8.0;
         let inv_scale = 1.0 / (TILE_PX * world_map_camera.zoom);
-        world_map_camera
-            .move_delta(-dx * inv_scale, -dy * inv_scale);
-
+        world_map_camera.move_delta(-dx * inv_scale, -dy * inv_scale);
         *previous_mouse_x = mx;
         *previous_mouse_y = my;
         input_handled = true;
     }
+
     // End drag
-    if is_mouse_button_released(MouseButton::Middle) {
+    if events.iter().any(|e| matches!(e, InputEvent::MouseUp(MouseButton::Middle))) {
         *previous_mouse_x = 0.0;
         *previous_mouse_y = 0.0;
         input_handled = true;
     }
 
-    // --- City click handling ---
-    if is_mouse_button_pressed(MouseButton::Left) {
-        let (mx, my) = mouse_position();
+    // City click
+    if events.iter().any(|e| matches!(e, InputEvent::MouseDown(MouseButton::Left))) {
+        let (mx, my) = state.mouse_position;
         view_change = view_world_map::handle_city_click(
             world_map,
             world_map_camera,
@@ -149,6 +125,5 @@ pub fn handle_input(
         input_handled = true;
     }
 
-    // Return any view change that occurred
     view_change
-} 
+}

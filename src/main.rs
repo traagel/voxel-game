@@ -5,6 +5,7 @@ mod world;
 mod worldgen;
 mod gui;
 mod particle;
+mod input;
 
 use game::Game;
 
