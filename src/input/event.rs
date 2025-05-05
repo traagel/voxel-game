@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum InputEvent {
     KeyDown(KeyCode),
     KeyUp(KeyCode),

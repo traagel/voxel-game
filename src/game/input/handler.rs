@@ -40,17 +40,14 @@ impl InputHandler {
         world_map: &WorldMap,
         world_map_camera: &mut Camera,
     ) -> bool {
-        let events = input.events();
-        let state = input.state();
-
         // ESC key toggles main menu
-        if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::Escape))) {
+        if input.key().pressed(KeyCode::Escape) {
             window_manager.main_menu.toggle_main();
             return true;
         }
 
         // Switch between WorldMap and LocalMap views
-        if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::Tab))) {
+        if input.key().pressed(KeyCode::Tab) {
             *active_view = match *active_view {
                 GameView::WorldMap => GameView::LocalMap,
                 GameView::LocalMap => GameView::WorldMap,

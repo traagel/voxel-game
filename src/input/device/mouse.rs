@@ -32,11 +32,9 @@ impl MouseInput {
                 if !self.previous_buttons.contains(&button) {
                     events.push(InputEvent::MouseDown(button));
                 }
-            } else {
-                if self.previous_buttons.contains(&button) {
-                    events.push(InputEvent::MouseUp(button));
-                    state.mouse_buttons.remove(&button);
-                }
+            } else if self.previous_buttons.contains(&button) {
+                events.push(InputEvent::MouseUp(button));
+                state.mouse_buttons.remove(&button);
             }
         }
 

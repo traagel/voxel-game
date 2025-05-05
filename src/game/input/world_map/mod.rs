@@ -1,3 +1,7 @@
+mod camera_controls;
+mod mouse_controls;
+mod constants;
+
 use crate::input::event::InputEvent;
 use macroquad::prelude::*;
 use crate::renderer::camera::Camera;
@@ -6,6 +10,36 @@ use crate::gui::windows::window_manager::WindowManager;
 use crate::game::views::{GameView, world_map as view_world_map};
 use crate::input::manager::InputManager;
 
+use camera_controls::{
+    handle_center_camera,
+    handle_keyboard_movement,
+    handle_zoom,
+    enforce_camera_boundaries,
+};
+use mouse_controls::{
+    DragState,
+    handle_drag_start,
+    handle_drag_movement,
+    handle_drag_end,
+    handle_city_click,
+};
+
+/// Stores the state for world map input handling
+pub struct WorldMapInputState {
+    drag_state: DragState,
+}
+
+impl Default for WorldMapInputState {
+    fn default() -> Self {
+        Self {
+            drag_state: DragState::default(),
+        }
+    }
+}
+
+/// Handles all input for the world map view
+/// 
+/// Returns a GameView Option if a view change is requested
 pub fn handle_input(
     input: &InputManager,
     previous_mouse_x: &mut f32,
@@ -14,116 +48,62 @@ pub fn handle_input(
     world_map: &WorldMap,
     window_manager: &mut WindowManager,
 ) -> Option<GameView> {
-    let mut input_handled = false;
+    // Migrate to using proper state management
+    let mut drag_state = DragState {
+        previous_x: *previous_mouse_x,
+        previous_y: *previous_mouse_y,
+    };
+    
+    // Always enforce camera boundaries at the start
+    // This handles cases like window resizing or initial loading
+    enforce_camera_boundaries(world_map_camera, world_map);
+    
     let mut view_change = None;
-    let move_speed = 200.0 * get_frame_time();
-    let zoom_speed = 0.2;
-    let state = input.state();
-    let events = input.events();
 
-    // Center map on 'C'
-    if events.iter().any(|e| matches!(e, InputEvent::KeyDown(KeyCode::C))) {
-        let w = world_map.width as f32;
-        let h = world_map.height as f32;
-        const TILE_PX: f32 = 8.0;
-        let zoom = world_map_camera.zoom;
-        let sw = screen_width();
-        let sh = screen_height();
-        let half_wu_x = (sw * 0.5) / (TILE_PX * zoom);
-        let half_wu_y = (sh * 0.5) / (TILE_PX * zoom);
-        let desired_cam_x = w * 0.5 - half_wu_x;
-        let desired_cam_y = h * 0.5 - half_wu_y;
-
-        world_map_camera.move_delta(
-            desired_cam_x - world_map_camera.x,
-            desired_cam_y - world_map_camera.y,
-        );
-        input_handled = true;
+    // Process input by priority
+    let mut handled = false;
+    
+    // 1. Check for center camera input
+    if !handled {
+        handled = handle_center_camera(input, world_map_camera, world_map);
     }
-
-    // WASD pan
-    let mut movement = false;
-    if state.keys_down.contains(&KeyCode::W) {
-        world_map_camera.move_delta(0.0, -move_speed);
-        movement = true;
+    
+    // 2. Check for keyboard movement
+    if !handled {
+        handled = handle_keyboard_movement(input, world_map_camera, world_map);
     }
-    if state.keys_down.contains(&KeyCode::S) {
-        world_map_camera.move_delta(0.0, move_speed);
-        movement = true;
+    
+    // 3. Check for zooming
+    if !handled {
+        handled = handle_zoom(input, world_map_camera, world_map);
     }
-    if state.keys_down.contains(&KeyCode::A) {
-        world_map_camera.move_delta(-move_speed, 0.0);
-        movement = true;
+    
+    // 4. Check for drag input
+    if !handled {
+        handled = handle_drag_start(input, &mut drag_state);
     }
-    if state.keys_down.contains(&KeyCode::D) {
-        world_map_camera.move_delta(move_speed, 0.0);
-        movement = true;
+    
+    // 5. Process drag movement
+    if !handled {
+        handled = handle_drag_movement(input, &mut drag_state, world_map_camera, world_map);
     }
-    if movement {
-        input_handled = true;
+    
+    // 6. Check for drag end
+    if !handled {
+        handled = handle_drag_end(input, &mut drag_state);
     }
-
-    // Zoom around cursor (8px tiles)
-    let wheel = state.mouse_scroll;
-    if wheel != 0.0 {
-        const TILE_PX: f32 = 8.0;
-        let old_zoom = world_map_camera.zoom;
-        let new_zoom = (old_zoom + wheel * zoom_speed).clamp(1.0, 10.0);
-        let old_scale = TILE_PX * old_zoom;
-        let (mx, my) = state.mouse_position;
-        let world_x = world_map_camera.x + mx / old_scale;
-        let world_y = world_map_camera.y + my / old_scale;
-        world_map_camera.set_zoom(new_zoom);
-        let new_scale = TILE_PX * new_zoom;
-        let new_cam_x = world_x - mx / new_scale;
-        let new_cam_y = world_y - my / new_scale;
-        world_map_camera.move_delta(
-            new_cam_x - world_map_camera.x,
-            new_cam_y - world_map_camera.y,
-        );
-        input_handled = true;
+    
+    // 7. Check for city clicks
+    if !handled {
+        view_change = handle_city_click(input, world_map, world_map_camera, window_manager);
     }
-
-    // Start drag
-    if events.iter().any(|e| matches!(e, InputEvent::MouseDown(MouseButton::Middle))) {
-        let (mx, my) = state.mouse_position;
-        *previous_mouse_x = mx;
-        *previous_mouse_y = my;
-        input_handled = true;
-    }
-
-    // Continue drag
-    if state.mouse_buttons.contains(&MouseButton::Middle) {
-        let (mx, my) = state.mouse_position;
-        let dx = mx - *previous_mouse_x;
-        let dy = my - *previous_mouse_y;
-        const TILE_PX: f32 = 8.0;
-        let inv_scale = 1.0 / (TILE_PX * world_map_camera.zoom);
-        world_map_camera.move_delta(-dx * inv_scale, -dy * inv_scale);
-        *previous_mouse_x = mx;
-        *previous_mouse_y = my;
-        input_handled = true;
-    }
-
-    // End drag
-    if events.iter().any(|e| matches!(e, InputEvent::MouseUp(MouseButton::Middle))) {
-        *previous_mouse_x = 0.0;
-        *previous_mouse_y = 0.0;
-        input_handled = true;
-    }
-
-    // City click
-    if events.iter().any(|e| matches!(e, InputEvent::MouseDown(MouseButton::Left))) {
-        let (mx, my) = state.mouse_position;
-        view_change = view_world_map::handle_city_click(
-            world_map,
-            world_map_camera,
-            mx,
-            my,
-            window_manager,
-        );
-        input_handled = true;
-    }
-
+    
+    // Final boundary check to ensure the camera is always within bounds
+    enforce_camera_boundaries(world_map_camera, world_map);
+    
+    // Update the previous mouse position for next frame
+    *previous_mouse_x = drag_state.previous_x;
+    *previous_mouse_y = drag_state.previous_y;
+    
     view_change
 }
