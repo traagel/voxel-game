@@ -4,7 +4,7 @@ use crate::gui::windows::worldgen::WorldGenWindowState;
 use crate::gui::windows::worldgen::draw_worldgen_window;
 use crate::gui::windows::worker_info::WorkerInfoState;
 use crate::gui::GuiState;
-use crate::game::game::RenderMode;
+use crate::game::input::RenderMode;
 use crate::gui::windows::window_state::WindowState;
 
 pub struct WindowManager {

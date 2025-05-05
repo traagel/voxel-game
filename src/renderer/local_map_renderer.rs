@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::game::game_state::GameState;
+use crate::game::state::GameState;
 use crate::renderer::camera::Camera;
 use crate::renderer::grid::draw_grid;
 use crate::renderer::tile_render::TileRenderer;

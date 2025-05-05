@@ -1,5 +1,5 @@
 use crate::world::localmap::world::World;
-use crate::game::game::RenderMode;
+use crate::game::input::RenderMode;
 
 pub struct GuiState {
     pub show_ui: bool,

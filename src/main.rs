@@ -6,7 +6,7 @@ mod worldgen;
 mod gui;
 mod particle;
 
-use game::game::Game;
+use game::Game;
 
 mod game;
 
